@@ -1,0 +1,48 @@
+services:
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    ports:
+      - "9000:9000"
+
+  crawler_service:
+    build:
+      context: ./services/crawler_service
+      dockerfile: Dockerfile
+    container_name: crawler-service
+    ports:
+      - "9003:9003"
+
+  alram_service:
+    build:
+      context: ./services/alram_service
+      dockerfile: Dockerfile
+    container_name: alram-service
+    ports:
+      - "9001:9001"
+
+  chatbot_service:
+    build:
+      context: ./services/chatbot_service
+      dockerfile: Dockerfile
+    container_name: chatbot-service
+    ports:
+      - "9002:9002"
+
+  map_service:
+    build:
+      context: ./services/map_service
+      dockerfile: Dockerfile
+    container_name: map-service
+    ports:
+      - "9004:9004"
+
+  translate_service:
+    build:
+      context: ./services/translate_service
+      dockerfile: Dockerfile
+    container_name: translate-service
+    ports:
+      - "9005:9005"
