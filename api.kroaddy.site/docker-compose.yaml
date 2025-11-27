@@ -1,0 +1,170 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    container_name: kroaddy
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=kroaddy
+      - POSTGRES_PASSWORD=12345678
+      - POSTGRES_DB=kroaddy
+    ports:
+      - "5432:5432"
+    networks:
+      - spring-network
+
+  eureka:
+    build:
+      context: .
+      dockerfile: ./server/eureka/Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - HOSTNAME=eureka-server
+    networks:
+      - spring-network
+
+  config:
+    build:
+      context: .
+      dockerfile: ./server/config/Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,native
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka:8761/eureka/
+      - HOSTNAME=config-server
+    depends_on:
+      - eureka
+    networks:
+      - spring-network
+
+  discovery:
+    build:
+      context: .
+      dockerfile: ./server/discovery/Dockerfile
+    container_name: discovery-client
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka:8761/eureka/
+      - HOSTNAME=discovery-client
+      - SERVER_PORT=8080
+      - CONFIG_SERVER_ENABLED=false
+    depends_on:
+      - eureka
+    networks:
+      - spring-network
+
+  common:
+    build:
+      context: .
+      dockerfile: ./service/common/Dockerfile
+    container_name: common-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SERVER_PORT=8081
+      - HOSTNAME=common-service
+    depends_on:
+      - eureka
+    networks:
+      - spring-network
+
+  company:
+    build:
+      context: .
+      dockerfile: ./service/company/Dockerfile
+    container_name: company-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SERVER_PORT=8084
+      - HOSTNAME=company-service
+    depends_on:
+      - eureka
+    networks:
+      - spring-network
+
+  user:
+    build:
+      context: .
+      dockerfile: ./service/user/Dockerfile
+    container_name: user-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SERVER_PORT=8082
+      - HOSTNAME=user-service
+    depends_on:
+      - eureka
+    networks:
+      - spring-network
+
+  soccer:
+    build:
+      context: .
+      dockerfile: ./service/soccer/Dockerfile
+    container_name: soccer-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SERVER_PORT=8083
+      - HOSTNAME=soccer-service
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=kroaddy
+      - DB_USER=kroaddy
+      - DB_PASSWORD=12345678
+    depends_on:
+      - eureka
+      - db
+    networks:
+      - spring-network
+
+  ui-server:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ui-server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      # 백엔드 API URL 설정 (Gateway를 통해 접근)
+      - NEXT_PUBLIC_API_URL=http://discovery-client:8080
+    restart: unless-stopped
+    networks:
+      - spring-network
+    # Windows/Mac에서 호스트 머신 접근을 위한 설정
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      discovery:
+        condition: service_started
+      eureka:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  spring-network:
+    driver: bridge
