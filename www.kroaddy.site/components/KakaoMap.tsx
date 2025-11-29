@@ -80,12 +80,10 @@ export default function KakaoMapPage() {
     }, [KAKAO_MAP_API_KEY]);
 
     return (
-        <div className="min-h-screen p-8">
-            <h1 className="text-2xl font-bold mb-4">카카오 지도 테스트</h1>
-
+        <div className="w-full h-full relative">
             {!KAKAO_MAP_API_KEY && (
-                <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
-                    ⚠️ 카카오맵 API 키가 설정되지 않았습니다. .env.local 파일에 NEXT_PUBLIC_KAKAO_MAP_API_KEY를 설정해주세요.
+                <div className="absolute top-4 left-4 z-20 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                    ⚠️ 카카오맵 API 키가 설정되지 않았습니다.
                 </div>
             )}
 
@@ -122,11 +120,9 @@ export default function KakaoMapPage() {
             {/* 지도를 그릴 영역 */}
             <div
                 id="map"
+                className="w-full h-full"
                 style={{
-                    width: "100%",
-                    height: "600px",
                     border: "1px solid #ccc",
-                    borderRadius: "8px",
                 }}
             ></div>
         </div>
