@@ -1,16 +1,4 @@
-rootProject.name = 'spring-server'
+rootProject.name = 'api'
 
-// Server modules
-include 'server'
-project(':server').projectDir = file('server')
-include 'server:discovery'
-include 'server:config'
-include 'server:eureka'
-
-// Service modules
-include 'service'
-project(':service').projectDir = file('service')
-include 'service:common'
-include 'service:soccer'
-include 'service:user'
-include 'service:company'
+include 'gateway'
+include 'services:auth-service'
