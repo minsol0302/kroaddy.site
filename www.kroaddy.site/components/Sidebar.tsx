@@ -3,9 +3,15 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Languages, User, HeadphonesIcon, Building2, Compass } from 'lucide-react';
+import { Languages, User, HeadphonesIcon, Building2, Compass, MessageSquare } from 'lucide-react';
 
-export function Sidebar() {
+interface SidebarProps {
+  onToggleChatbot?: () => void;
+  showChatbot?: boolean;
+  onReset?: () => void;
+}
+
+export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: SidebarProps) {
   const menuItems = [
     { icon: Languages, label: 'Translate' },
     { icon: User, label: 'My Page' },
@@ -17,7 +23,10 @@ export function Sidebar() {
     <div className="w-20 bg-white border-r flex flex-col items-center py-6">
       {/* 로고 */}
       <div className="mb-8">
-        <div className="flex flex-col items-center">
+        <button
+          onClick={onReset}
+          className="flex flex-col items-center hover:opacity-70 transition-opacity cursor-pointer"
+        >
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex items-center justify-center mb-1">
             <Image
               src="/logo2.png"
@@ -29,11 +38,24 @@ export function Sidebar() {
             />
           </div>
           <span className="text-[10px] text-gray-700">roaddy</span>
-        </div>
+        </button>
       </div>
 
       {/* 메뉴 아이템 */}
       <div className="flex-1 flex flex-col gap-6">
+        {/* 챗봇 토글 버튼 */}
+        {onToggleChatbot && (
+          <button
+            onClick={onToggleChatbot}
+            className={`flex flex-col items-center gap-1 hover:opacity-70 transition-opacity ${
+              showChatbot ? 'opacity-100' : 'opacity-50'
+            }`}
+          >
+            <MessageSquare className="w-5 h-5 text-gray-600" />
+            <span className="text-[9px] text-gray-600">Chat</span>
+          </button>
+        )}
+        
         {menuItems.map((item, index) => (
           <button
             key={index}

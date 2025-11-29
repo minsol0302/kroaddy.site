@@ -17,6 +17,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<Location | null>(null);
   const [route, setRoute] = useState<Location[]>([]);
+  const [showChatbot, setShowChatbot] = useState(true);
 
   const handleSendMessage = (message: string) => {
     const newMessages = [...messages, { role: 'user' as const, content: message }];
@@ -62,34 +63,53 @@ export default function Home() {
     setScreen('chatResponse');
   };
 
+  const handleReset = () => {
+    setMessages([]);
+    setRoute([]);
+    setSelectedPlace(null);
+    setScreen('initial');
+    setShowChatbot(true);
+  };
+
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* 사이드바 */}
-      <Sidebar />
+      <Sidebar
+        onToggleChatbot={() => setShowChatbot(!showChatbot)}
+        showChatbot={showChatbot}
+        onReset={handleReset}
+      />
 
       {/* 챗봇과 지도 영역 (리사이저블) */}
       {(screen === 'initial' || screen === 'chatResponse') ? (
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* 챗봇 */}
-          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-            <div className="h-full flex flex-col border-r">
-              <Chatbot
-                messages={messages}
-                onSendMessage={handleSendMessage}
-              />
-            </div>
-          </ResizablePanel>
+        showChatbot ? (
+          <ResizablePanelGroup direction="horizontal" className="flex-1">
+            {/* 챗봇 */}
+            <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+              <div className="h-full flex flex-col border-r">
+                <Chatbot
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                />
+              </div>
+            </ResizablePanel>
 
-          {/* 리사이저 핸들 */}
-          <ResizableHandle withHandle />
+            {/* 리사이저 핸들 */}
+            <ResizableHandle withHandle />
 
-          {/* 지도 */}
-          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-            <div className="h-full">
-              <KakaoMap />
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            {/* 지도 */}
+            <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+              <div className="h-full">
+                <KakaoMap />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          /* 지도만 표시 (챗봇 숨김) */
+          <div className="flex-1 h-full">
+            <KakaoMap />
+          </div>
+        )
       ) : (
         <>
           {/* 장소 상세 팝업 (세 번째 화면) */}

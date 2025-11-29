@@ -128,7 +128,7 @@ public class GoogleController {
             response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 
             // 6. 프론트엔드 콜백 페이지로 리다이렉트 (토큰 없는 URL)
-            String redirectUrl = frontendCallbackUrl + "/login/home";
+            String redirectUrl = frontendCallbackUrl + "/login/google/callback";
 
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, redirectUrl)
