@@ -1,0 +1,12 @@
+services:
+  gateway:
+    build: ./gateway
+    ports:
+      - "9000:9000"
+    container_name: gateway-service
+
+  crawlerservice:
+    build: ./services/crawlerservice
+    ports:
+      - "9001:9001"
+    container_name: crawlerservice
