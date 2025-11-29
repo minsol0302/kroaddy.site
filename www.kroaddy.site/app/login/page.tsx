@@ -18,9 +18,9 @@ function LoginContent() {
 
         if (login === 'success') {
             setLoginStatus({ success: true, message: message ? decodeURIComponent(message) : '로그인 성공' });
-            // 로그인 성공 메시지 표시 후 /home으로 리다이렉트
+            // 로그인 성공 메시지 표시 후 /onboarding으로 리다이렉트
             const timer = setTimeout(() => {
-                router.replace('/home');
+                router.replace('/onboarding');
             }, 1500);
 
             // cleanup 함수로 메모리 누수 방지

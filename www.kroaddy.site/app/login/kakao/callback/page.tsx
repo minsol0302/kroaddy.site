@@ -7,8 +7,8 @@ export default function KakaoCallbackPage() {
 
     useEffect(() => {
         // 백엔드에서 쿠키로 토큰을 설정하고 리다이렉트했으므로
-        // 여기서는 단순히 홈으로 이동만 하면 됨
-        console.log('✅ 카카오 로그인 성공, 홈으로 이동합니다...');
+        // 여기서는 온보딩으로 이동
+        console.log('✅ 카카오 로그인 성공, 온보딩으로 이동합니다...');
 
         // 로그인 성공 로그 기록 (백엔드로 직접 전송)
         import('@/lib/api').then(({ API_BASE_URL }) => {
@@ -23,7 +23,7 @@ export default function KakaoCallbackPage() {
             }).catch(() => { });
         });
 
-        router.replace('/login/dashboard');
+        router.replace('/onboarding');
     }, [router]);
 
     return (
