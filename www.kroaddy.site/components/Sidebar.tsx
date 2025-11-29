@@ -2,6 +2,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { Languages, User, HeadphonesIcon, Building2, Compass } from 'lucide-react';
 
 export function Sidebar() {
@@ -17,8 +18,15 @@ export function Sidebar() {
       {/* 로고 */}
       <div className="mb-8">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0088FF] to-[#FF383C] flex items-center justify-center mb-1">
-            <span className="text-white text-xs">K</span>
+          <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex items-center justify-center mb-1">
+            <Image
+              src="/logo2.png"
+              alt="Kroaddy logo"
+              width={48}
+              height={48}
+              className="object-contain"
+              priority
+            />
           </div>
           <span className="text-[10px] text-gray-700">roaddy</span>
         </div>

@@ -5,9 +5,10 @@
 import React, { useState } from "react";
 import { Sidebar } from "../../components/Sidebar";
 import { Chatbot } from "../../components/Chatbot";
-import { MapView } from "../../components/MapView";
+import KakaoMap from "../../components/KakaoMap";
 import { PlacePopup } from "../../components/PlacePopup";
 import { Message, Location } from "../../lib/types";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../../components/ui/resizable";
 
 export type Screen = 'initial' | 'chatResponse' | 'placeDetail';
 
@@ -66,32 +67,45 @@ export default function Home() {
       {/* 사이드바 */}
       <Sidebar />
 
-      {/* 챗봇 (첫 번째, 두 번째 화면에만 표시) */}
-      {(screen === 'initial' || screen === 'chatResponse') && (
-        <div className="w-1/2 flex flex-col border-r">
-          <Chatbot
-            messages={messages}
-            onSendMessage={handleSendMessage}
-          />
-        </div>
-      )}
+      {/* 챗봇과 지도 영역 (리사이저블) */}
+      {(screen === 'initial' || screen === 'chatResponse') ? (
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
+          {/* 챗봇 */}
+          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+            <div className="h-full flex flex-col border-r">
+              <Chatbot
+                messages={messages}
+                onSendMessage={handleSendMessage}
+              />
+            </div>
+          </ResizablePanel>
 
-      {/* 장소 상세 팝업 (세 번째 화면) */}
-      {screen === 'placeDetail' && selectedPlace && (
-        <PlacePopup
-          place={selectedPlace}
-          onClose={handleClosePopup}
-        />
-      )}
+          {/* 리사이저 핸들 */}
+          <ResizableHandle withHandle />
 
-      {/* 지도 */}
-      <div className={screen === 'placeDetail' ? 'flex-1' : 'w-1/2'}>
-        <MapView
-          route={route}
-          onPlaceClick={handlePlaceClick}
-          showRoute={screen === 'chatResponse'}
-        />
-      </div>
+          {/* 지도 */}
+          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+            <div className="h-full">
+              <KakaoMap />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <>
+          {/* 장소 상세 팝업 (세 번째 화면) */}
+          {selectedPlace && (
+            <PlacePopup
+              place={selectedPlace}
+              onClose={handleClosePopup}
+            />
+          )}
+
+          {/* 지도 (전체 화면) */}
+          <div className="flex-1 h-full">
+            <KakaoMap />
+          </div>
+        </>
+      )}
     </div>
   );
 }
