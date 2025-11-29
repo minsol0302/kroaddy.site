@@ -17,14 +17,15 @@ export default function Onboarding() {
     });
 
     const questions = [
-        { key: 'gender', question: '안녕! 반가워요~ 😊\n성별이 어떻게 되시나요?', options: ['남성', '여성', '기타/비공개'] },
-        { key: 'age', question: '좋아요! 몇 살이세요?', placeholder: '예: 28' },
-        { key: 'nationality', question: '어느 나라에서 오셨어요? 🌏', placeholder: '예: 대한민국' },
-        { key: 'religion', question: '종교가 있으신가요?\n(없으면 "무교"라고 적어주세요)', placeholder: '예: 무교, 기독교, 불교 등' },
-        { key: 'dietary', question: '마지막으로 하나만 더!\n식습관은 어떠신가요?', options: ['일반식', '채식(락토/오보)', '비건', '페스코', '기타'] },
+        { key: 'gender', question: 'Hey! Nice to meet you! 😊\nWhat is your gender?', options: ['Male', 'Female', 'Other/Non-disclosure'] },
+        { key: 'age', question: 'Good! How old are you?', placeholder: 'Example: 28' },
+        { key: 'nationality', question: 'Where are you from? 🌏', placeholder: 'Example: Korea' },
+        { key: 'religion', question: 'Do you have a religion?\n(If you don\'t have one, write "None")', placeholder: 'Example: None, Christian, Buddhist, etc.' },
+        { key: 'dietary', question: 'One last question! 🍽️\nWhat is your dietary habit?', options: ['Normal', 'Vegetarian(Lacto/Ovo)', 'Vegan', 'Pescetarian', 'Other'] },
     ];
 
     const current = questions[step];
+    const progress = ((step + 1) / questions.length) * 100;
 
     const handleNext = () => {
         if (step < questions.length - 1) {
@@ -42,85 +43,89 @@ export default function Onboarding() {
         setFormData({ ...formData, [current.key]: value });
     };
 
+    const handleOptionSelect = (value: string) => {
+        handleInput(value);
+        // 옵션 선택 시 자동으로 다음으로 이동
+        setTimeout(() => {
+            handleNext();
+        }, 300);
+    };
+
     return (
-        <div className="min-h-screen bg-gradient-to-b from-orange-50 to-blue-50 flex items-center justify-center px-6">
-            <div className="max-w-md w-full flex flex-col items-center space-y-10">
-                {/* 캐릭터 */}
-                <div className="relative">
-                    <Image
-                        src="/character.png"
-                        alt="해태 캐릭터"
-                        width={320}
-                        height={320}
-                        className="drop-shadow-2xl"
-                        priority
-                    />
+        <div
+            className="min-h-screen flex items-center justify-center px-4"
+            style={{
+                backgroundImage: 'url(/paper2.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+            }}
+        >
+            {/* 모달 오버레이 */}
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+                {/* 헤더 */}
+                <div className="px-8 pt-8 pb-4">
+                    <div className="mb-6 flex justify-center">
+                        <Image
+                            src="/logo3.png"
+                            alt="Kroaddy"
+                            width={150}
+                            height={50}
+                            className="mb-2"
+                            priority
+                        />
+                    </div>
 
-                    {/* 말풍선 */}
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-80">
-                        <div className="relative bg-white rounded-3xl px-8 py-6 shadow-xl">
-                            {/* 꼬리 */}
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full">
-                                <div className="w-0 h-0 border-l-8 border-r-8 border-t-12 border-transparent border-t-white"></div>
-                            </div>
-
-                            <p className="text-lg text-center text-gray-800 whitespace-pre-line leading-relaxed font-medium">
-                                {current.question}
-                            </p>
-                        </div>
+                    {/* 진행 바 */}
+                    <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-purple-600 transition-all duration-300 ease-out"
+                            style={{ width: `${progress}%` }}
+                        />
                     </div>
                 </div>
 
-                {/* 입력 영역 */}
-                <div className="w-full space-y-6 animate-in slide-in-from-bottom duration-500">
-                    {current.options ? (
-                        <div className="grid grid-cols-1 gap-3">
-                            {current.options.map((option) => (
+                {/* 질문 영역 */}
+                <div className="px-8 py-8">
+                    <h2 className="text-2xl font-semibold text-gray-900 mb-8 text-center whitespace-pre-line leading-relaxed">
+                        {current.question}
+                    </h2>
+
+                    {/* 옵션 또는 입력 */}
+                    <div className="space-y-3">
+                        {current.options ? (
+                            current.options.map((option) => (
                                 <button
                                     key={option}
-                                    onClick={() => {
-                                        handleInput(option);
-                                        handleNext();
-                                    }}
-                                    className={`py-4 rounded-2xl font-medium text-lg transition-all ${formData[current.key as keyof typeof formData] === option
-                                        ? 'bg-orange-500 text-white shadow-lg scale-105'
-                                        : 'bg-white text-gray-800 shadow-md hover:shadow-lg hover:scale-105'
+                                    onClick={() => handleOptionSelect(option)}
+                                    className={`w-full py-4 px-6 rounded-xl text-left font-medium transition-all duration-200 ${formData[current.key as keyof typeof formData] === option
+                                        ? 'bg-purple-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                                         }`}
                                 >
                                     {option}
                                 </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-4">
-                            <input
-                                type="text"
-                                placeholder={current.placeholder || ''}
-                                value={formData[current.key as keyof typeof formData]}
-                                onChange={(e) => handleInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && formData[current.key as keyof typeof formData] && handleNext()}
-                                className="px-6 py-4 rounded-2xl bg-white shadow-md text-center text-lg focus:outline-none focus:ring-4 focus:ring-orange-300"
-                                autoFocus
-                            />
-                            <button
-                                onClick={handleNext}
-                                disabled={!formData[current.key as keyof typeof formData]}
-                                className="py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all"
-                            >
-                                다음 →
-                            </button>
-                        </div>
-                    )}
-
-                    {/* 진행률 */}
-                    <div className="flex justify-center gap-2 pt-6">
-                        {questions.map((_, i) => (
-                            <div
-                                key={i}
-                                className={`h-2 w-12 rounded-full transition-all ${i <= step ? 'bg-orange-500' : 'bg-gray-300'
-                                    }`}
-                            />
-                        ))}
+                            ))
+                        ) : (
+                            <div className="space-y-4">
+                                <input
+                                    type="text"
+                                    placeholder={current.placeholder || ''}
+                                    value={formData[current.key as keyof typeof formData]}
+                                    onChange={(e) => handleInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && formData[current.key as keyof typeof formData] && handleNext()}
+                                    className="w-full px-6 py-4 rounded-xl bg-gray-100 text-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:bg-white transition-all"
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={handleNext}
+                                    disabled={!formData[current.key as keyof typeof formData]}
+                                    className="w-full py-4 px-6 rounded-xl bg-purple-600 text-white font-semibold text-lg shadow-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                >
+                                    Continue →
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
