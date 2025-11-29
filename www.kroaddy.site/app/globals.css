@@ -4,12 +4,31 @@
 
 /* 한지 배경 이미지 */
 body {
-  background-image: url('/paper.png');
+  background-image: url('/paper2.png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-color: #f8f8f8;
+}
+
+/* 스크롤바 숨기기 */
+html {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
 }
 
 /* 페이드인 애니메이션 */
@@ -113,6 +132,42 @@ body {
   animation: logoFloat 6s ease-in-out infinite;
 }
 
+/* 타이틀 미묘한 떠다니는 애니메이션 */
+@keyframes floatSubtle {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float-subtle {
+  animation: floatSubtle 8s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* 링크 떠다니는 애니메이션 */
+@keyframes floatLink {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-float-link {
+  animation: floatLink 7s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
 /* 펄스 애니메이션 */
 @keyframes pulseSlow {
 
@@ -130,34 +185,35 @@ body {
   animation: pulseSlow 4s ease-in-out infinite;
 }
 
+/* 로고 그림자 */
+.logo-shadow {
+  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.15)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.1));
+}
+
 /* Text Link */
 .text-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #2a2a2a;
   text-decoration: none;
-  transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
+  letter-spacing: 0.01em;
 }
 
 .link-text {
   position: relative;
-  letter-spacing: 0.02em;
 }
 
 .link-text::after {
   content: '';
   position: absolute;
-  bottom: -2px;
+  bottom: -3px;
   left: 0;
   width: 0;
   height: 2px;
   background: linear-gradient(90deg, #dc2626, #2563eb);
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .text-link:hover .link-text::after {
@@ -166,13 +222,12 @@ body {
 
 .link-arrow {
   display: inline-block;
-  font-size: 1.25rem;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   color: #2563eb;
 }
 
 .text-link:hover .link-arrow {
-  transform: translateX(4px);
+  transform: translateX(6px);
 }
 
 .text-link:hover {
