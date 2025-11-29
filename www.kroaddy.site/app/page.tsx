@@ -17,7 +17,7 @@ export default function Home() {
       </div>
 
       {/* 로고 */}
-      <div className="mb-20 opacity-0 animate-fade-in-up relative z-10">
+      <div className="mb-12 sm:mb-16 md:mb-20 opacity-0 animate-fade-in-up relative z-10">
         <div className="relative logo-container">
           <div className="absolute inset-0 animate-pulse-slow blur-3xl opacity-20 bg-gradient-to-r from-red-400 via-blue-400 to-red-400"></div>
           <Image
@@ -26,13 +26,13 @@ export default function Home() {
             width={400}
             height={400}
             priority
-            className="w-64 md:w-72 lg:w-80 relative animate-float logo-shadow"
+            className="w-48 sm:w-56 md:w-64 lg:w-72 xl:w-80 relative animate-float logo-shadow"
           />
         </div>
       </div>
 
       {/* 타이틀 */}
-      <div className="mb-12 opacity-0 animate-fade-in-up animation-delay-200 relative z-10">
+      <div className="mb-8 sm:mb-10 md:mb-12 px-4 opacity-0 animate-fade-in-up animation-delay-200 relative z-10">
         <div className="title-wrapper relative inline-block animate-float-subtle">
           <h1
             className="antialiased relative cursor-default transition-all duration-500"
@@ -137,15 +137,15 @@ export default function Home() {
       </div>
 
       {/* 시작하기 링크 */}
-      <div className="mt-32 animate-fade-in-up animation-delay-400 relative z-10 animate-float-link">
+      <div className="mt-16 sm:mt-20 md:mt-24 lg:mt-32 animate-fade-in-up animation-delay-400 relative z-10 animate-float-link">
         <Link
           href="/login"
-          className="text-link group inline-flex items-center gap-3 transition-all duration-500"
+          className="text-link group inline-flex items-center gap-2 sm:gap-3 transition-all duration-500"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          <span className="link-text font-semibold text-xl">지금 시작하기</span>
-          <span className="link-arrow text-2xl">→</span>
+          <span className="link-text font-semibold text-lg sm:text-xl">지금 시작하기</span>
+          <span className="link-arrow text-xl sm:text-2xl">→</span>
         </Link>
       </div>
     </main>
