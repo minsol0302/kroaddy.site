@@ -23,7 +23,7 @@ export default function KakaoCallbackPage() {
             }).catch(() => { });
         });
 
-        router.replace('/home');
+        router.replace('/login/dashboard');
     }, [router]);
 
     return (
