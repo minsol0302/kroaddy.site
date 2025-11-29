@@ -8,7 +8,7 @@ export default function Home() {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden hide-scrollbar">
       {/* 배경 애니메이션 요소들 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="floating-circle floating-circle-1"></div>
@@ -17,7 +17,7 @@ export default function Home() {
       </div>
 
       {/* 로고 */}
-      <div className="mb-16 opacity-0 animate-fade-in-up relative z-10">
+      <div className="mb-20 opacity-0 animate-fade-in-up relative z-10">
         <div className="relative logo-container">
           <div className="absolute inset-0 animate-pulse-slow blur-3xl opacity-20 bg-gradient-to-r from-red-400 via-blue-400 to-red-400"></div>
           <Image
@@ -26,26 +26,22 @@ export default function Home() {
             width={400}
             height={400}
             priority
-            className="w-72 md:w-80 lg:w-96 relative animate-float"
+            className="w-64 md:w-72 lg:w-80 relative animate-float logo-shadow"
           />
         </div>
       </div>
 
       {/* 타이틀 */}
-      <div className="mb-8 opacity-0 animate-fade-in-up animation-delay-200 relative z-10">
-        <div
-          className="title-wrapper relative inline-block mb-4"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
+      <div className="mb-12 opacity-0 animate-fade-in-up animation-delay-200 relative z-10">
+        <div className="title-wrapper relative inline-block animate-float-subtle">
           <h1
-            className="antialiased relative cursor-default"
+            className="antialiased relative cursor-default transition-all duration-500"
             style={{
               fontWeight: 700,
-              fontSize: 'clamp(3rem, 8vw, 5rem)',
+              fontSize: 'clamp(3.5rem, 10vw, 6rem)',
               color: '#0a0a0a',
-              letterSpacing: '-0.04em',
-              lineHeight: '1.1'
+              letterSpacing: '-0.03em',
+              lineHeight: '1.2'
             }}
           >
             <span className="inline-block">
@@ -141,13 +137,15 @@ export default function Home() {
       </div>
 
       {/* 시작하기 링크 */}
-      <div className="mt-12 opacity-0 animate-fade-in-up animation-delay-400 relative z-10">
+      <div className="mt-32 animate-fade-in-up animation-delay-400 relative z-10 animate-float-link">
         <Link
           href="/login"
-          className="text-link group"
+          className="text-link group inline-flex items-center gap-3 transition-all duration-500"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
-          <span className="link-text">지금 시작하기</span>
-          <span className="link-arrow">→</span>
+          <span className="link-text font-semibold text-xl">지금 시작하기</span>
+          <span className="link-arrow text-2xl">→</span>
         </Link>
       </div>
     </main>
