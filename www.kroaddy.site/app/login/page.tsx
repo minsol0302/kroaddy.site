@@ -40,29 +40,29 @@ function LoginContent() {
                     </div>
                 )}
 
-                <div className={`bg-white rounded-2xl shadow-xl p-8 space-y-6 ${loginStatus?.success ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className={`bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-4 sm:space-y-6 ${loginStatus?.success ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="text-center space-y-2">
-                        <h1 className="text-3xl font-bold text-gray-900">환영합니다</h1>
-                        <p className="text-gray-600">원하는 소셜 계정으로 간편하게 로그인하세요</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">환영합니다</h1>
+                        <p className="text-sm sm:text-base text-gray-600">원하는 소셜 계정으로 간편하게 로그인하세요</p>
                     </div>
 
                     <button
                         onClick={handleKakaoLogin}
-                        className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-[#000000] px-6 py-4 rounded-xl text-base font-semibold hover:bg-[#FDD835] transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
+                        className="w-full flex items-center justify-center gap-2 sm:gap-3 bg-[#FEE500] text-[#000000] px-4 sm:px-6 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-semibold hover:bg-[#FDD835] transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
                     >
                         카카오 로그인
                     </button>
 
                     <button
                         onClick={handleNaverLogin}
-                        className="w-full flex items-center justify-center gap-3 bg-[#03C75A] text-[#000000] px-6 py-4 rounded-xl text-base font-semibold hover:bg-[#02B03F] transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
+                        className="w-full flex items-center justify-center gap-2 sm:gap-3 bg-[#03C75A] text-[#000000] px-4 sm:px-6 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-semibold hover:bg-[#02B03F] transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
                     >
                         네이버 로그인
                     </button>
 
                     <button
                         onClick={handleGoogleLogin}
-                        className="w-full flex items-center justify-center gap-3 bg-[#4285F4] text-[#FFFFFF] px-6 py-4 rounded-xl text-base font-semibold hover:bg-[#3367D6] transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
+                        className="w-full flex items-center justify-center gap-2 sm:gap-3 bg-[#4285F4] text-[#FFFFFF] px-4 sm:px-6 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-semibold hover:bg-[#3367D6] transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
                     >
                         구글 로그인
                     </button>
