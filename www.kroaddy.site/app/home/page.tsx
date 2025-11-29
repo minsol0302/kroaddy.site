@@ -7,6 +7,7 @@ import { Sidebar } from "../../components/Sidebar";
 import { Chatbot } from "../../components/Chatbot";
 import KakaoMap from "../../components/KakaoMap";
 import { PlacePopup } from "../../components/PlacePopup";
+import { WeatherWidget } from "../../components/WeatherWidget";
 import { Message, Location } from "../../lib/types";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../../components/ui/resizable";
 
@@ -72,13 +73,18 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex h-screen bg-white overflow-hidden relative">
       {/* 사이드바 */}
       <Sidebar
         onToggleChatbot={() => setShowChatbot(!showChatbot)}
         showChatbot={showChatbot}
         onReset={handleReset}
       />
+
+      {/* 날씨 위젯 - 오른쪽 상단 */}
+      <div className="absolute top-4 right-4 z-50">
+        <WeatherWidget />
+      </div>
 
       {/* 챗봇과 지도 영역 (리사이저블) */}
       {(screen === 'initial' || screen === 'chatResponse') ? (

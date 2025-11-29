@@ -50,15 +50,14 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
         {onToggleChatbot && (
           <button
             onClick={onToggleChatbot}
-            className={`flex flex-col items-center gap-1 hover:opacity-70 transition-opacity ${
-              showChatbot ? 'opacity-100' : 'opacity-50'
-            }`}
+            className={`flex flex-col items-center gap-1 hover:opacity-70 transition-opacity ${showChatbot ? 'opacity-100' : 'opacity-50'
+              }`}
           >
             <MessageSquare className="w-5 h-5 text-gray-600" />
             <span className="text-[9px] text-gray-600">Chat</span>
           </button>
         )}
-        
+
         {menuItems.map((item, index) => (
           <button
             key={index}
