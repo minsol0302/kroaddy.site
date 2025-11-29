@@ -2,6 +2,7 @@
 "use client";
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Languages, User, HeadphonesIcon, Building2, Compass, MessageSquare } from 'lucide-react';
 
@@ -12,11 +13,13 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: SidebarProps) {
+  const router = useRouter();
+  
   const menuItems = [
-    { icon: Languages, label: 'Translate' },
-    { icon: User, label: 'My Page' },
-    { icon: HeadphonesIcon, label: 'Support' },
-    { icon: Building2, label: 'About Us' }
+    { icon: Languages, label: 'Translate', path: null },
+    { icon: User, label: 'My Page', path: '/mypage' },
+    { icon: HeadphonesIcon, label: 'Support', path: null },
+    { icon: Building2, label: 'About Us', path: null }
   ];
 
   return (
@@ -59,6 +62,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
         {menuItems.map((item, index) => (
           <button
             key={index}
+            onClick={() => item.path && router.push(item.path)}
             className="flex flex-col items-center gap-1 hover:opacity-70 transition-opacity"
           >
             <item.icon className="w-5 h-5 text-gray-600" />
