@@ -2,18 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 로고 이미지의 배경과 완전히 동일한 순수 흰색 배경 */
+/* 한지 배경 이미지 */
 body {
-  background-color: #ffffff;
-  background-image: none;
+  background-image: url('/paper.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-color: #f8f8f8;
 }
 
-/* 로고 이미지가 배경과 완전히 일치하도록 그림자 제거 */
-main>div:first-child {
-  filter: none;
-}
-
-/* 부드러운 페이드인 애니메이션 */
+/* 페이드인 애니메이션 */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -38,21 +37,144 @@ main>div:first-child {
   animation-delay: 0.4s;
 }
 
-.animation-delay-600 {
-  animation-delay: 0.6s;
+/* 배경 떠다니는 원형 요소들 */
+.floating-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
+  animation: float 20s ease-in-out infinite;
 }
 
-/* 간단한 페이드인 애니메이션 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+.floating-circle-1 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #dc2626, #2563eb);
+  top: -10%;
+  left: -5%;
+  animation-duration: 25s;
+}
+
+.floating-circle-2 {
+  width: 350px;
+  height: 350px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  bottom: -10%;
+  right: -5%;
+  animation-delay: 7s;
+  animation-duration: 22s;
+}
+
+.floating-circle-3 {
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, #7c3aed, #dc2626);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: 14s;
+  animation-duration: 28s;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
   }
 
-  to {
-    opacity: 1;
+  25% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+
+  50% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  75% {
+    transform: translate(25px, 35px) scale(1.05);
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in forwards;
+/* 로고 떠다니는 애니메이션 */
+@keyframes logoFloat {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: logoFloat 6s ease-in-out infinite;
+}
+
+/* 펄스 애니메이션 */
+@keyframes pulseSlow {
+
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 4s ease-in-out infinite;
+}
+
+/* Text Link */
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.link-text {
+  position: relative;
+  letter-spacing: 0.02em;
+}
+
+.link-text::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #dc2626, #2563eb);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.text-link:hover .link-text::after {
+  width: 100%;
+}
+
+.link-arrow {
+  display: inline-block;
+  font-size: 1.25rem;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #2563eb;
+}
+
+.text-link:hover .link-arrow {
+  transform: translateX(4px);
+}
+
+.text-link:hover {
+  color: #2563eb;
 }
