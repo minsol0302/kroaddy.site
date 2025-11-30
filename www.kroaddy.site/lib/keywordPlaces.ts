@@ -69,7 +69,7 @@ export const keywordPlaceMap: Record<string, Location[]> = {
     },
     {
       id: 'place9',
-      name: '청수당',
+      name: '청수당 베이커리',
       address: '서울특별시 종로구 계동길 37-4',
       lat: 37.574070,
       lng: 126.989837,

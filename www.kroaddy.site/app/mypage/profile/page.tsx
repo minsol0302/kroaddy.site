@@ -83,7 +83,7 @@ export default function ProfilePage() {
         <div
             className="min-h-screen"
             style={{
-                backgroundImage: 'url(/paper2.png)',
+                backgroundImage: 'url(/img/paper2.png)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',

@@ -32,7 +32,7 @@ export default function Home() {
         <div className="relative logo-container">
           <div className="absolute inset-0 animate-pulse-slow blur-3xl opacity-20 bg-gradient-to-r from-red-400 via-blue-400 to-red-400"></div>
           <Image
-            src="/logo3.png"
+            src="/img/logo3.png"
             alt="Kroaddy"
             width={400}
             height={400}
