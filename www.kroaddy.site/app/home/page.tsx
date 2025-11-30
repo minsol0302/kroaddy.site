@@ -2,6 +2,7 @@
 
 "use client";
 
+
 import React, { useState } from "react";
 import { Sidebar } from "../../components/Sidebar";
 import { Chatbot } from "../../components/Chatbot";
@@ -10,6 +11,7 @@ import { PlacePopup } from "../../components/PlacePopup";
 import { WeatherWidget } from "../../components/WeatherWidget";
 import { Message, Location } from "../../lib/types";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../../components/ui/resizable";
+
 
 export type Screen = 'initial' | 'chatResponse' | 'placeDetail';
 
@@ -35,9 +37,27 @@ export default function Home() {
 
         // Set route
         const recommendedRoute: Location[] = [
-          { name: 'Changdeokgung', lat: 37.5794, lng: 126.9910 },
-          { name: 'Gyeongbokgung', lat: 37.5796, lng: 126.9770 },
-          { name: 'Seodaemun Prison', lat: 37.5744, lng: 126.9587 }
+          {
+            id: '1',
+            name: 'Changdeokgung',
+            address: '서울특별시 종로구 율곡로 99',
+            lat: 37.5794,
+            lng: 126.9910
+          },
+          {
+            id: '2',
+            name: 'Gyeongbokgung',
+            address: '서울특별시 종로구 사직로 161',
+            lat: 37.5796,
+            lng: 126.9770
+          },
+          {
+            id: '3',
+            name: 'Seodaemun Prison',
+            address: '서울특별시 서대문구 통일로 251',
+            lat: 37.5744,
+            lng: 126.9587
+          }
         ];
         setRoute(recommendedRoute);
         setScreen('chatResponse');
@@ -73,6 +93,9 @@ export default function Home() {
   };
 
   return (
+
+
+
     <div className="flex h-screen bg-white overflow-hidden relative">
       {/* 사이드바 */}
       <Sidebar
@@ -106,14 +129,14 @@ export default function Home() {
             {/* 지도 */}
             <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
               <div className="h-full">
-                <KakaoMap />
+                <KakaoMap route={route} onPlaceClick={handlePlaceClick} />
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : (
           /* 지도만 표시 (챗봇 숨김) */
           <div className="flex-1 h-full">
-            <KakaoMap />
+            <KakaoMap route={route} onPlaceClick={handlePlaceClick} />
           </div>
         )
       ) : (
@@ -128,7 +151,7 @@ export default function Home() {
 
           {/* 지도 (전체 화면) */}
           <div className="flex-1 h-full">
-            <KakaoMap />
+            <KakaoMap route={route} onPlaceClick={handlePlaceClick} />
           </div>
         </>
       )}

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import Script from "next/script";
+import { createOverlayContent } from "./CustomOverlay";
+import { Location } from "../lib/types";
 
 declare global {
   interface Window {
@@ -9,86 +11,118 @@ declare global {
   }
 }
 
-export default function KakaoMapPage() {
-  const markerRef = useRef<any>(null);
-  const infoWindowRef = useRef<any>(null);
+interface KakaoMapProps {
+  route?: Location[];
+  onPlaceClick?: (place: Location) => void;
+}
+
+export default function KakaoMapPage({ route = [], onPlaceClick }: KakaoMapProps) {
   const mapRef = useRef<any>(null);
+  const customOverlaysRef = useRef<any[]>([]);
+  const markersRef = useRef<any[]>([]);
+  const overlayLocationMapRef = useRef<Map<any, Location>>(new Map());
+  // 지도 클릭으로 생성된 마커와 오버레이 (route와 별도 관리)
+  const clickMarkerRef = useRef<any>(null);
+  const clickOverlayRef = useRef<any>(null);
 
   const KAKAO_MAP_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY;
 
-  // 장소 정보를 말풍선에 넣는 함수
-  const updateInfoWindow = (name: string, address: string) => {
-    const content = `
-      <div style="
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        padding: 16px 20px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-        min-width: 260px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        position: relative;
-        margin-bottom: 16px;
-      ">
-        <div style="
-          font-size: 18px;
-          font-weight: 700;
-          color: #1a1a1a;
-          margin-bottom: 6px;
-        ">
-          ${name}
-        </div>
-        <div style="
-          font-size: 14px;
-          color: #666;
-          line-height: 1.4;
-        ">
-          ${address}
-        </div>
-        <button onclick="if(infoWindowRef?.current) infoWindowRef.current.close()"
-          style="
-            position: absolute;
-            top: 8px; right: 8px;
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #aaa;
-          ">×</button>
-      </div>`;
+  // 모든 오버레이 닫기
+  const closeAllOverlays = () => {
+    customOverlaysRef.current.forEach((overlay) => {
+      if (overlay) overlay.setMap(null);
+    });
+  };
 
-    if (infoWindowRef.current) {
-      infoWindowRef.current.setContent(content);
+  // 특정 오버레이 열기
+  const openOverlay = (overlay: any) => {
+    closeAllOverlays();
+    if (overlay && mapRef.current) {
+      overlay.setMap(mapRef.current);
     }
   };
 
-  // 좌표로 주소 검색해서 말풍선 업데이트
-  const searchAddrFromCoords = (latlng: any) => {
-    const geocoder = new window.kakao.maps.services.Geocoder();
+  // 기존 오버레이와 마커 제거 (route 기반만)
+  const clearOverlays = () => {
+    customOverlaysRef.current.forEach((overlay) => {
+      if (overlay) overlay.setMap(null);
+    });
+    customOverlaysRef.current = [];
 
-    geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result: any, status: any) => {
-      if (status === window.kakao.maps.services.Status.OK) {
-        const addr = result[0].road_address || result[0].address;
-        const placeName = addr?.road_address_name ? "위치 조정됨" : "새로운 위치";
-        const addressName = addr?.road_address_name || addr?.address_name || "주소 검색 중...";
+    markersRef.current.forEach((marker) => {
+      if (marker) marker.setMap(null);
+    });
+    markersRef.current = [];
+    overlayLocationMapRef.current.clear();
+  };
 
-        updateInfoWindow(placeName, addressName);
-      }
+  // 지도 클릭으로 생성된 마커와 오버레이 제거
+  const clearClickMarker = () => {
+    if (clickMarkerRef.current) {
+      clickMarkerRef.current.setMap(null);
+      clickMarkerRef.current = null;
+    }
+    if (clickOverlayRef.current) {
+      clickOverlayRef.current.setMap(null);
+      clickOverlayRef.current = null;
+    }
+    clickLocationRef.current = null;
+  };
+
+  // 지도 클릭으로 생성된 Location 저장
+  const clickLocationRef = useRef<Location | null>(null);
+
+  // route에 따라 마커와 오버레이 생성 (오버레이는 숨김 상태)
+  const createOverlays = (map: any) => {
+    if (!route || route.length === 0) return;
+
+    route.forEach((location) => {
+      // 마커 생성
+      const marker = new window.kakao.maps.Marker({
+        position: new window.kakao.maps.LatLng(location.lat, location.lng),
+        map: map,
+      });
+      markersRef.current.push(marker);
+
+      // 커스텀 오버레이 생성 (초기에는 숨김)
+      const overlayId = `overlay-${location.id || location.name}`;
+      const content = createOverlayContent(location, overlayId);
+
+      const customOverlay = new window.kakao.maps.CustomOverlay({
+        position: new window.kakao.maps.LatLng(location.lat, location.lng),
+        content: content,
+        xAnchor: 0.3,
+        yAnchor: 0.91,
+      });
+
+      // 초기에는 오버레이를 숨김 상태로 설정
+      customOverlay.setMap(null);
+      customOverlaysRef.current.push(customOverlay);
+      overlayLocationMapRef.current.set(customOverlay, location);
+
+      // 마커 클릭 이벤트 - 오버레이 토글 (상세 화면은 열지 않음)
+      window.kakao.maps.event.addListener(marker, "click", () => {
+        // 현재 오버레이가 열려있는지 확인
+        const isOpen = customOverlay.getMap() !== null;
+
+        if (isOpen) {
+          // 열려있으면 닫기
+          closeAllOverlays();
+        } else {
+          // 닫혀있으면 오버레이만 열기
+          openOverlay(customOverlay);
+        }
+      });
     });
 
-    // 주변 장소도 다시 검색해서 이름 가져오기
-    const places = new window.kakao.maps.services.Places();
-    places.keywordSearch("카페 음식점 관광 명소", (data: any, status: any) => {
-      if (status === window.kakao.maps.services.Status.OK && data.length > 0) {
-        const near = data.find((p: any) =>
-          Math.abs(parseFloat(p.y) - latlng.getLat()) < 0.001 &&
-          Math.abs(parseFloat(p.x) - latlng.getLng()) < 0.001
-        );
-        if (near) {
-          updateInfoWindow(near.place_name, near.road_address_name || near.address_name);
-        }
-      }
-    }, { location: latlng, radius: 300 });
+    // 모든 마커가 보이도록 지도 범위 조정
+    if (route.length > 0) {
+      const bounds = new window.kakao.maps.LatLngBounds();
+      route.forEach((location) => {
+        bounds.extend(new window.kakao.maps.LatLng(location.lat, location.lng));
+      });
+      map.setBounds(bounds);
+    }
   };
 
   useEffect(() => {
@@ -107,55 +141,186 @@ export default function KakaoMapPage() {
         });
         mapRef.current = map;
 
-        const clearPrevious = () => {
-          if (markerRef.current) markerRef.current.setMap(null);
-          if (infoWindowRef.current) infoWindowRef.current.close();
-        };
-
+        // 지도 클릭 이벤트 - 아무 장소나 클릭하면 마커 표시
         window.kakao.maps.event.addListener(map, "click", function (mouseEvent: any) {
-          clearPrevious();
+          // route 기반 마커는 유지하고, 클릭으로 생성된 마커만 제거
+          clearClickMarker();
 
           const latlng = mouseEvent.latLng;
 
           // 드래그 가능한 마커 생성
           const marker = new window.kakao.maps.Marker({
             position: latlng,
-            draggable: true,  // 이게 핵심!
+            draggable: true,
             map: map,
           });
+          clickMarkerRef.current = marker;
 
-          // 처음 클릭했을 때 말풍선
-          const infowindow = new window.kakao.maps.InfoWindow({
-            content: `
-              <div style="
-                background:white; border:1px solid #ddd; border-radius:12px;
-                padding:16px 20px; box-shadow:0 8px 24px rgba(0,0,0,0.15);
-                min-width:260px; font-family:system-ui; margin-bottom:16px;
-              ">
-                <div style="font-weight:700; font-size:18px; margin-bottom:6px;">위치 선택됨</div>
-                <div style="font-size:14px; color:#666;">드래그해서 조정하세요</div>
-                <button onclick="if(infoWindowRef?.current) infoWindowRef.current.close()"
-                  style="position:absolute; top:8px; right:8px; background:none; border:none; font-size:20px; cursor:pointer;">×</button>
-              </div>`,
-            removable: true,
+          // 좌표로 주소 검색 및 주변 장소 검색
+          const geocoder = new window.kakao.maps.services.Geocoder();
+          const places = new window.kakao.maps.services.Places();
+
+          // 주소 가져오기
+          geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result: any, status: any) => {
+            if (status === window.kakao.maps.services.Status.OK) {
+              const addr = result[0].road_address || result[0].address;
+              const addressName = addr?.road_address_name || addr?.address_name || "주소 검색 중...";
+
+              // 주변 장소 검색 함수
+              const searchNearbyPlace = (categories: string[], index: number, callback: (placeName: string) => void) => {
+                if (index >= categories.length) {
+                  callback("위치 선택됨");
+                  return;
+                }
+
+                places.categorySearch(categories[index], (data: any, searchStatus: any) => {
+                  if (searchStatus === window.kakao.maps.services.Status.OK && data.length > 0) {
+                    // 가장 가까운 장소 찾기
+                    let nearestPlace = null;
+                    let minDistance = Infinity;
+
+                    data.forEach((place: any) => {
+                      const placeLat = parseFloat(place.y);
+                      const placeLng = parseFloat(place.x);
+                      const distance = Math.sqrt(
+                        Math.pow(placeLat - latlng.getLat(), 2) +
+                        Math.pow(placeLng - latlng.getLng(), 2)
+                      );
+
+                      if (distance < minDistance && distance < 0.0005) { // 약 50m 이내
+                        minDistance = distance;
+                        nearestPlace = place as any;
+                      }
+                    });
+
+                    if (nearestPlace) {
+                      callback((nearestPlace as any).place_name);
+                    } else {
+                      // 다음 카테고리 검색
+                      searchNearbyPlace(categories, index + 1, callback);
+                    }
+                  } else {
+                    // 다음 카테고리 검색
+                    searchNearbyPlace(categories, index + 1, callback);
+                  }
+                }, {
+                  location: latlng,
+                  radius: 100
+                });
+              };
+
+              // 여러 카테고리 순차 검색 (음식점, 카페, 관광명소, 문화시설)
+              const categories = ['FD6', 'CE7', 'AT4', 'CT1'];
+              searchNearbyPlace(categories, 0, (placeName: string) => {
+                // 오버레이 생성
+                const tempLocation: Location = {
+                  id: `click-${Date.now()}`,
+                  name: placeName,
+                  address: addressName,
+                  lat: latlng.getLat(),
+                  lng: latlng.getLng(),
+                };
+
+                clickLocationRef.current = tempLocation;
+
+                const overlayId = `overlay-click-${Date.now()}`;
+                const content = createOverlayContent(tempLocation, overlayId);
+
+                const customOverlay = new window.kakao.maps.CustomOverlay({
+                  position: latlng,
+                  content: content,
+                  xAnchor: 0.3,
+                  yAnchor: 0.91,
+                });
+
+                customOverlay.setMap(map);
+                clickOverlayRef.current = customOverlay;
+                map.panTo(latlng);
+              });
+            }
           });
 
-          infowindow.open(map, marker);
-          map.panTo(latlng);
-
-          // 드래그 끝날 때마다 주소 업데이트
+          // 드래그 끝날 때마다 주소 및 장소명 업데이트
           window.kakao.maps.event.addListener(marker, "dragend", function () {
             const newPos = marker.getPosition();
-            searchAddrFromCoords(newPos);
-            map.panTo(newPos);
+            const geocoder = new window.kakao.maps.services.Geocoder();
+            const places = new window.kakao.maps.services.Places();
+
+            geocoder.coord2Address(newPos.getLng(), newPos.getLat(), (result: any, status: any) => {
+              if (status === window.kakao.maps.services.Status.OK) {
+                const addr = result[0].road_address || result[0].address;
+                const addressName = addr?.road_address_name || addr?.address_name || "주소 검색 중...";
+
+                // 주변 장소 검색
+                const searchNearbyPlace = (categories: string[], index: number, callback: (placeName: string) => void) => {
+                  if (index >= categories.length) {
+                    callback("위치 조정됨");
+                    return;
+                  }
+
+                  places.categorySearch(categories[index], (data: any, searchStatus: any) => {
+                    if (searchStatus === window.kakao.maps.services.Status.OK && data.length > 0) {
+                      let nearestPlace = null;
+                      let minDistance = Infinity;
+
+                      data.forEach((place: any) => {
+                        const placeLat = parseFloat(place.y);
+                        const placeLng = parseFloat(place.x);
+                        const distance = Math.sqrt(
+                          Math.pow(placeLat - newPos.getLat(), 2) +
+                          Math.pow(placeLng - newPos.getLng(), 2)
+                        );
+
+                        if (distance < minDistance && distance < 0.0005) {
+                          minDistance = distance;
+                          nearestPlace = place as any;
+                        }
+                      });
+
+                      if (nearestPlace) {
+                        callback((nearestPlace as any).place_name);
+                      } else {
+                        searchNearbyPlace(categories, index + 1, callback);
+                      }
+                    } else {
+                      searchNearbyPlace(categories, index + 1, callback);
+                    }
+                  }, {
+                    location: newPos,
+                    radius: 100
+                  });
+                };
+
+                const categories = ['FD6', 'CE7', 'AT4', 'CT1'];
+                searchNearbyPlace(categories, 0, (placeName: string) => {
+                  // 오버레이 업데이트
+                  if (clickOverlayRef.current) {
+                    const tempLocation: Location = {
+                      id: clickLocationRef.current?.id || `click-${Date.now()}`,
+                      name: placeName,
+                      address: addressName,
+                      lat: newPos.getLat(),
+                      lng: newPos.getLng(),
+                    };
+
+                    clickLocationRef.current = tempLocation;
+
+                    const overlayId = `overlay-click-${Date.now()}`;
+                    const content = createOverlayContent(tempLocation, overlayId);
+
+                    clickOverlayRef.current.setContent(content);
+                  }
+                  map.panTo(newPos);
+                });
+              }
+            });
           });
-
-          // 처음 위치도 주소 검색
-          searchAddrFromCoords(latlng);
-
-          markerRef.current = marker;
-          infoWindowRef.current = infowindow;
         });
+
+        // route가 있으면 오버레이 생성
+        if (route && route.length > 0) {
+          createOverlays(map);
+        }
       });
     };
 
@@ -166,6 +331,65 @@ export default function KakaoMapPage() {
       return () => window.removeEventListener("kakaoMapLoaded", handler);
     }
   }, [KAKAO_MAP_API_KEY]);
+
+  // route 변경 시 오버레이 업데이트
+  useEffect(() => {
+    if (!mapRef.current || !window.kakao?.maps) return;
+
+    clearOverlays();
+
+    if (route && route.length > 0) {
+      createOverlays(mapRef.current);
+    }
+  }, [route]);
+
+  // 오버레이 닫기 이벤트 리스너
+  useEffect(() => {
+    const handleCloseOverlay = () => {
+      closeAllOverlays();
+    };
+
+    window.addEventListener('closeOverlay', handleCloseOverlay);
+    return () => {
+      window.removeEventListener('closeOverlay', handleCloseOverlay);
+    };
+  }, []);
+
+  // 오버레이 확장 버튼 클릭 이벤트 리스너 (+ 버튼)
+  useEffect(() => {
+    const handleExpandPlace = (event: any) => {
+      const locationId = event.detail;
+
+      // overlayLocationMapRef에서 location 찾기 (route 기반)
+      let targetLocation: Location | null = null;
+      overlayLocationMapRef.current.forEach((location, overlay) => {
+        if ((location.id || location.name) === locationId) {
+          targetLocation = location;
+        }
+      });
+
+      // route 기반에서 못 찾으면 지도 클릭으로 생성된 location 확인
+      if (!targetLocation && clickLocationRef.current) {
+        const clickId = clickLocationRef.current.id || clickLocationRef.current.name;
+        if (clickId === locationId) {
+          targetLocation = clickLocationRef.current;
+        }
+      }
+
+      if (targetLocation && onPlaceClick) {
+        // 오버레이 닫기
+        closeAllOverlays();
+        clearClickMarker();
+        // 상세 화면 열기
+        onPlaceClick(targetLocation);
+      }
+    };
+
+    window.addEventListener('expandPlace', handleExpandPlace as EventListener);
+    return () => {
+      window.removeEventListener('expandPlace', handleExpandPlace as EventListener);
+    };
+  }, [onPlaceClick]);
 
   return (
     <div className="relative w-full h-screen">
