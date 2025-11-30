@@ -11,6 +11,7 @@ import { PlacePopup } from "../../components/PlacePopup";
 import { WeatherWidget } from "../../components/WeatherWidget";
 import { Message, Location } from "../../lib/types";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../../components/ui/resizable";
+import { keywordPlaceMap } from "../../lib/keywordPlaces";
 
 
 export type Screen = 'initial' | 'chatResponse' | 'placeDetail';
@@ -22,10 +23,145 @@ export default function Home() {
   const [route, setRoute] = useState<Location[]>([]);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [showChatbot, setShowChatbot] = useState(true);
+  const [mapResetKey, setMapResetKey] = useState<number>(0);
 
   const handleSendMessage = (message: string) => {
     const newMessages = [...messages, { role: 'user' as const, content: message }];
     setMessages(newMessages);
+
+    // '근처' 키워드 처리
+    if (message.includes('근처')) {
+      setTimeout(() => {
+        const responseContent = `당연하지! 너의 현재 위치는 동대문 디자인 플라자야. 내가 너의 정보에 맞춰서 장소를 추천해줄게.
+
+---
+
+## 🏛️ 경복궁 (Gyeongbokgung Palace)
+
+서울에서 한국 전통 문화를 가장 제대로 볼 수 있는 궁궐이야. 큰 궁문이랑 왕이 쓰던 건물들이 정말 멋지고, 경회루라는 연못도 예뻐서 사진 찍기 좋아. 한국 역사나 전통 건축에 관심 있으면 꼭 가봐야 해!
+
+---
+
+## 🌊 청계천 (Cheonggyecheon Stream)
+
+도시 한가운데에 있는 산책로인데, 물 흐르는 소리 들으면서 걸을 수 있어서 정말 편안해. 곳곳에 예쁜 다리랑 조형물도 있어. 특히 밤에는 조명이 예뻐서 분위기가 좋아.
+
+---
+
+## 🏪 광장시장 (Gwangjang Market)
+
+서울에서 가장 오래된 전통시장 중 하나로, 요즘 외국인들이 한국 로컬 분위기 제대로 느끼고 싶을 때 꼭 찾는 곳이야. 한복, 원단, 빈티지 상점도 많아서 음식만 즐기는 곳이 아니라 "한국 일상 속 시장 문화"를 통째로 경험할 수 있는 공간이야.
+
+---
+
+## ⛪ 명동대성당 (Myeongdong Cathedral)
+
+한국에서 가장 유명한 가톨릭 성당 중 하나야. 건물이 고딕 스타일이라 굉장히 아름답고, 주변이 명동이라 쇼핑하다가 잠깐 들르기 딱 좋아. 역사적으로도 의미 있는 장소야.
+
+---
+
+## 🥗 비건 인사 채식당 (Vegan Insa Restaurant)
+
+인사동 근처에 있는 비건 레스토랑이야. 한국 전통 스타일을 살린 비건 요리를 맛볼 수 있어서, 비건이 아니라도 경험해보기 좋아. 외국인 여행자들도 많이 가!
+
+---
+
+## 🍽️ 오세계향 (Osegyehyang)
+
+인사동에서 가장 유명한 비건 레스토랑 중 하나. 사찰음식 스타일의 요리를 현대적으로 만들어서 맛도 좋고 건강한 느낌이야. 비건 친구가 있다면 특히 추천하고 싶어.
+
+---
+
+## ☕ 카페 수달 (Cafe Soodal)
+
+조용하고 편안한 분위기에 한국식 디저트도 있는 카페야. 한옥 감성도 느껴져서 서울의 전통적인 분위기를 좀 더 편하게 즐길 수 있어.
+
+---
+
+## 🍵 청수당 (Cheongsudang)
+
+한옥 스타일의 카페로 요즘 정말 인기 많아. 동양적인 인테리어가 예쁘고, 디저트도 정교하게 잘 만들어져 있어. 한국 전통 분위기 + 현대 감성 모두 즐길 수 있어서 외국인들이 좋아하는 곳이야.
+
+---
+
+**이 경로를 선택할래?**`;
+
+        const response: Message = {
+          role: 'assistant',
+          content: responseContent
+        };
+        setMessages([...newMessages, response]);
+
+        // '근처' 키워드에 매핑된 장소들을 route로 설정
+        if (keywordPlaceMap['근처']) {
+          setRoute(keywordPlaceMap['근처']);
+          setSearchKeyword(''); // 기존 검색 로직과 충돌 방지
+        }
+        setScreen('chatResponse');
+      }, 500);
+      return;
+    }
+
+    // '추천' 키워드 처리
+    if (message.includes('추천')) {
+      setTimeout(() => {
+        const responseContent = `이 곳은 어때? 리뷰도 좋고! 인기가 많은 식당이야!
+
+---
+
+## 🌸 꽃밥에 피다 북촌 친환경 그로서란트
+
+전통 가옥 분위기 속에서 건강하고 자연 친화적인 식재료를 판매하고 식사도 가능한 공간이다. 북촌의 한옥 감성과 로컬 재료 중심의 식단이 외국인들에게 특히 매력적이야
+
+---
+
+**최적의 경로를 추천해줄까?**`;
+
+        const response: Message = {
+          role: 'assistant',
+          content: responseContent
+        };
+        setMessages([...newMessages, response]);
+
+        // 기존 route에서 특정 장소 제거하고 새 장소 추가
+        if (keywordPlaceMap['근처']) {
+          const basePlaces = keywordPlaceMap['근처'];
+
+          // 제거할 장소 ID 목록
+          const removeIds = ['place5', 'place6', 'place7']; // 비건 인사 채식당, 오세계향, 카페 수달
+
+          // 필터링: 제거할 장소 제외
+          const filteredPlaces = basePlaces.filter(place => !removeIds.includes(place.id));
+
+          // 꽃밥에 피다 북촌 친환경 그로서란트 추가
+          const kkotbapPlace = basePlaces.find(place => place.id === 'place4');
+          if (kkotbapPlace) {
+            filteredPlaces.push(kkotbapPlace);
+          }
+
+          setRoute(filteredPlaces);
+          setSearchKeyword(''); // 기존 검색 로직과 충돌 방지
+        }
+        setScreen('chatResponse');
+      }, 500);
+      return;
+    }
+
+    // '응' 키워드 처리
+    if (message.includes('응')) {
+      setTimeout(() => {
+        const responseContent = `그래 좋아 네가 이동하면서 장소의 숨겨진 이야기를 알려줄게! 도움이 필요하면 언제든지 물어봐!`;
+
+        const response: Message = {
+          role: 'assistant',
+          content: responseContent
+        };
+        setMessages([...newMessages, response]);
+
+        setScreen('chatResponse');
+      }, 500);
+      return;
+    }
 
     // Historic sites recommendation simulation
     if (message.toLowerCase().includes('historic') && (message.toLowerCase().includes('recommend') || message.toLowerCase().includes('suggest'))) {
@@ -112,6 +248,7 @@ export default function Home() {
     setSelectedPlace(null);
     setScreen('initial');
     setShowChatbot(true);
+    setMapResetKey(prev => prev + 1); // 지도 초기화를 위한 키 증가
   };
 
   return (
@@ -173,14 +310,14 @@ export default function Home() {
           {/* 지도 */}
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <div className="h-full">
-              <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} />
+              <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} resetKey={mapResetKey} />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       ) : (
         /* 지도만 표시 (챗봇 숨김) */
         <div className="flex-1 h-full">
-          <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} />
+          <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} resetKey={mapResetKey} />
         </div>
       )}
     </div>

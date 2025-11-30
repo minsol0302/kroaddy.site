@@ -6,6 +6,9 @@ import { Send, Languages } from 'lucide-react';
 import { Message, LanguageCode } from '../lib/types';
 import { translateText, getLanguageCode, detectLanguage } from '../service/translateService';
 import { t, getCurrentLanguage } from '../lib/i18n';
+import React, { useState } from 'react';
+import { Send, Languages, Music, TreePine, Activity, BookOpen, Building2 } from 'lucide-react';
+import { Message } from '../lib/types';
 
 interface ChatbotProps {
   messages: Message[];
@@ -166,6 +169,30 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
             </div>
           ))
         )}
+      </div>
+
+      {/* 카테고리 버튼 영역 */}
+      <div className="px-6 pb-4 border-t bg-white">
+        <div className="flex gap-3 overflow-x-auto py-4 scrollbar-hide">
+          {[
+            { icon: Music, label: 'K-POP', color: 'bg-pink-500' },
+            { icon: TreePine, label: '자연', color: 'bg-green-500' },
+            { icon: Activity, label: '액티비티', color: 'bg-orange-500' },
+            { icon: BookOpen, label: '역사', color: 'bg-amber-500' },
+            { icon: Building2, label: '박물관', color: 'bg-purple-500' },
+          ].map((category, index) => (
+            <button
+              key={index}
+              onClick={() => onSendMessage(category.label)}
+              className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all whitespace-nowrap flex-shrink-0"
+            >
+              <div className={`w-8 h-8 ${category.color} rounded-lg flex items-center justify-center`}>
+                <category.icon className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-sm font-medium text-gray-900">{category.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 입력 영역 */}

@@ -16,12 +16,13 @@ interface KakaoMapProps {
   route?: Location[];
   searchKeyword?: string;
   onPlaceClick?: (place: Location) => void;
+  resetKey?: number; // 초기화를 위한 키
 }
 
 // 전역으로 onPlaceClick 저장 (이벤트 핸들러에서 접근하기 위해)
 let globalOnPlaceClick: ((place: Location) => void) | undefined = undefined;
 
-export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick }: KakaoMapProps) {
+export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick, resetKey = 0 }: KakaoMapProps) {
   const mapRef = useRef<any>(null);
   const customOverlaysRef = useRef<any[]>([]);
   const markersRef = useRef<any[]>([]);
@@ -47,14 +48,6 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     customOverlaysRef.current.forEach((overlay) => {
       if (overlay) overlay.setMap(null);
     });
-  };
-
-  // 특정 오버레이 열기
-  const openOverlay = (overlay: any) => {
-    closeAllOverlays();
-    if (overlay && mapRef.current) {
-      overlay.setMap(mapRef.current);
-    }
   };
 
   // 기존 오버레이와 마커 제거 (route 기반만)
@@ -343,14 +336,24 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     }
   }, [route]);
 
-  // onPlaceClick 업데이트 시 globalOnPlaceClick 갱신
+  // resetKey 변경 시 모든 마커와 오버레이 초기화
   useEffect(() => {
-    globalOnPlaceClick = onPlaceClick;
-  }, [onPlaceClick]);
+    if (!mapRef.current || !window.kakao?.maps) return;
+
+    clearOverlays();
+    clearClickMarker();
+    clearSearchMarkers();
+  }, [resetKey]);
 
   // 키워드 검색 처리 (카카오맵 API 기본 방식)
   useEffect(() => {
-    if (!mapRef.current || !window.kakao?.maps || !searchKeyword.trim()) {
+    if (!mapRef.current || !window.kakao?.maps) {
+      return;
+    }
+
+    // searchKeyword가 비어있으면 기존 검색 마커만 제거
+    if (!searchKeyword.trim()) {
+      clearSearchMarkers();
       return;
     }
 
@@ -399,14 +402,14 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       displayMarkerFromLocation(location);
     };
 
-    // 키워드에 '장소'가 포함되어 있는지 확인
+    // 키워드에 '근처'가 포함되어 있는지 확인
     const keyword = searchKeyword.trim();
-    const hasPlaceKeyword = keyword.includes('장소');
+    const hasPlaceKeyword = keyword.includes('근처');
 
     // 미리 정의된 키워드 매핑 확인
     let matchedKeyword: string | undefined;
     if (hasPlaceKeyword) {
-      matchedKeyword = '장소';
+      matchedKeyword = '근처';
     } else {
       // 다른 키워드도 확인 (부분 일치)
       matchedKeyword = Object.keys(keywordPlaceMap).find(key => keyword.includes(key));
@@ -414,25 +417,10 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
 
     if (matchedKeyword && keywordPlaceMap[matchedKeyword]) {
       // 미리 정의된 장소 목록 사용
-      // 각 장소의 좌표를 카카오맵 API로 검색하여 정확한 좌표로 업데이트
+      // keywordPlaces.ts에 정의된 정확한 좌표를 그대로 사용
       keywordPlaceMap[matchedKeyword].forEach((location) => {
-        // Places API로 정확한 좌표 검색
-        places.keywordSearch(location.name, (data: any, status: any) => {
-          if (status === window.kakao.maps.services.Status.OK && data.length > 0) {
-            // 검색 결과의 첫 번째 결과 사용 (가장 정확한 매칭)
-            const place = data[0];
-            const updatedLocation: Location = {
-              ...location,
-              lat: parseFloat(place.y),
-              lng: parseFloat(place.x),
-              address: place.road_address_name || place.address_name || location.address
-            };
-            displayMarkerFromLocation(updatedLocation);
-          } else {
-            // 검색 실패 시 기존 좌표 사용
-            displayMarkerFromLocation(location);
-          }
-        });
+        // keywordPlaces.ts에 정의된 좌표를 직접 사용 (사용자가 수정한 정확한 좌표)
+        displayMarkerFromLocation(location);
       });
     } else {
       // Places API로 검색
