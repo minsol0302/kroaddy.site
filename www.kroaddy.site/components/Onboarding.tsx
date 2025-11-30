@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+// 온보딩 페이지
 export default function Onboarding() {
     const router = useRouter();
     const [step, setStep] = useState(0);
