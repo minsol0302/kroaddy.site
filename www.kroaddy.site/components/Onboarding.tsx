@@ -81,9 +81,20 @@ export default function Onboarding() {
                     overflow-y: auto;
                 }
             `}</style>
-            <div className="min-h-screen px-4 py-8" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
+            <div
+                className="min-h-screen px-4 py-8 relative"
+                style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                    backgroundImage: 'url(/hanoks/hanok5.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                }}
+            >
+                {/* 배경 오버레이 */}
+                <div className="absolute inset-0 bg-black/0 pointer-events-none z-0"></div>
                 {/* 중앙 컨텐츠 */}
-                <div className="flex min-h-screen items-center justify-center py-8">
+                <div className="flex min-h-screen items-center justify-center py-8 relative z-10">
                     <div className="w-full max-w-lg sm:max-w-xl md:max-w-2xl px-4 sm:px-6 md:px-8">
                         {/* 모달 스타일 박스 */}
                         <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 md:p-10 opacity-0 animate-fade-in-up border border-gray-100" style={{ overflow: 'visible', minHeight: '400px' }}>

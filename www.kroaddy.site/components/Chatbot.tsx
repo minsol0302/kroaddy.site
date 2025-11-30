@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, Languages, Music, TreePine, Activity, BookOpen, Building2 } from 'lucide-react';
 import { Message, LanguageCode } from '../lib/types';
 import { translateText, getLanguageCode, detectLanguage } from '../service/translateService';
@@ -19,6 +19,10 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
   const [isTranslating, setIsTranslating] = useState(false);
   const [selectedTargetLanguage, setSelectedTargetLanguage] = useState<LanguageCode>('ko');
   const [uiLanguage, setUiLanguage] = useState<LanguageCode>(getCurrentLanguage());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [typingMessages, setTypingMessages] = useState<Record<number, string>>({});
+  const typingTimeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
 
   // 선택된 언어 가져오기 및 변경 감지
   useEffect(() => {
@@ -57,6 +61,104 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
       setTranslatedMessages(messages);
     }
   }, [isTranslateEnabled, messages, selectedTargetLanguage]);
+
+  // 타이핑 효과 구현
+  useEffect(() => {
+    const displayMessages = isTranslateEnabled ? translatedMessages : messages;
+
+    displayMessages.forEach((message, index) => {
+      // Assistant 메시지만 타이핑 효과 적용
+      if (message.role === 'assistant') {
+        const fullContent = message.content;
+        const currentTyping = typingMessages[index];
+
+        // 이미 타이핑이 완료된 경우 스킵
+        if (currentTyping === fullContent) {
+          return;
+        }
+
+        // 기존 타이핑 타이머 정리
+        if (typingTimeoutsRef.current[index]) {
+          clearTimeout(typingTimeoutsRef.current[index]);
+        }
+
+        // 타이핑 시작 (새 메시지이거나 이전 타이핑이 중단된 경우)
+        let currentIndex = currentTyping ? currentTyping.length : 0;
+
+        const typeNextChar = () => {
+          if (currentIndex < fullContent.length) {
+            const nextChar = fullContent[currentIndex];
+            setTypingMessages(prev => ({
+              ...prev,
+              [index]: (prev[index] || '') + nextChar
+            }));
+            currentIndex++;
+
+            // 타이핑 중 스크롤 자동 이동
+            setTimeout(() => {
+              if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+              }
+            }, 0);
+
+            // 다음 글자 타이핑 (일반 텍스트는 빠르게, 줄바꿈이나 특수문자는 조금 느리게)
+            const delay = nextChar === '\n' ? 50 : nextChar === ' ' ? 15 : 10;
+            typingTimeoutsRef.current[index] = setTimeout(typeNextChar, delay);
+          } else {
+            // 타이핑 완료
+            setTypingMessages(prev => ({
+              ...prev,
+              [index]: fullContent
+            }));
+            // 타이핑 완료 후 최종 스크롤
+            setTimeout(() => {
+              if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+              }
+            }, 0);
+          }
+        };
+
+        // 타이핑 시작
+        if (currentIndex < fullContent.length) {
+          typeNextChar();
+        }
+      }
+    });
+
+    // cleanup 함수
+    return () => {
+      Object.values(typingTimeoutsRef.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, [messages, translatedMessages, isTranslateEnabled]);
+
+  // 메시지가 변경될 때마다 스크롤을 맨 아래로 이동
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    };
+
+    // 메시지가 추가된 후 약간의 지연을 두고 스크롤 (렌더링 완료 대기)
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timeoutId);
+  }, [messages, translatedMessages, isTranslateEnabled]);
+
+  // 타이핑 중에도 스크롤이 따라 내려가도록
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    };
+
+    // typingMessages가 변경될 때마다 스크롤 업데이트
+    const timeoutId = setTimeout(scrollToBottom, 10);
+    return () => clearTimeout(timeoutId);
+  }, [typingMessages]);
 
   const translateAllMessages = async () => {
     setIsTranslating(true);
@@ -224,7 +326,7 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
       </div>
 
       {/* 메시지 영역 */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 relative">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 pb-6 space-y-4 relative">
         {isTranslating && (
           <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-2 z-10">
             <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -232,61 +334,61 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
           </div>
         )}
 
+        {/* 카테고리 버튼 영역 - sticky로 고정 */}
+        <div className="sticky top-0 z-20 bg-white py-2 -mx-6 px-6 border-b border-gray-100">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {[
+              { label: 'K-POP' },
+              { label: '자연' },
+              { label: '액티비티' },
+              { label: '역사' },
+              { label: '박물관' },
+            ].map((category, index) => (
+              <button
+                key={index}
+                onClick={() => onSendMessage(category.label)}
+                className="px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all whitespace-nowrap flex-shrink-0 text-xs font-medium text-gray-900"
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {(isTranslateEnabled ? translatedMessages : messages).length === 0 ? (
           <div className="text-center text-gray-400 mt-20">
             <p>{t('chatbot.welcome.title', uiLanguage)}</p>
             <p className="text-xs mt-2">{t('chatbot.welcome.subtitle', uiLanguage)}</p>
           </div>
         ) : (
-          (isTranslateEnabled ? translatedMessages : messages).map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'user'
-                  ? 'bg-gradient-to-r from-[#0088FF] to-[#0088FF]/90 text-white'
-                  : 'bg-gray-100 text-gray-900'
-                  }`}
-              >
-                {message.role === 'assistant' ? (
-                  <div className="text-sm whitespace-pre-wrap">
-                    {renderMarkdown(message.content)}
-                  </div>
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                )}
-                {isTranslateEnabled && message.role === 'assistant' && message.translatedContent && message.translatedContent !== message.content && (
-                  <p className="text-xs mt-1 opacity-70 italic">(Translated)</p>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+          (isTranslateEnabled ? translatedMessages : messages).map((message, index) => {
+            // Assistant 메시지는 타이핑 효과 적용
+            const displayContent = message.role === 'assistant'
+              ? (typingMessages[index] || '')
+              : message.content;
+            const isTyping = message.role === 'assistant' && typingMessages[index] !== message.content;
 
-      {/* 카테고리 버튼 영역 */}
-      <div className="px-6 pb-4 border-t bg-white">
-        <div className="flex gap-3 overflow-x-auto py-4 scrollbar-hide">
-          {[
-            { icon: Music, label: 'K-POP', color: 'bg-pink-500' },
-            { icon: TreePine, label: '자연', color: 'bg-green-500' },
-            { icon: Activity, label: '액티비티', color: 'bg-orange-500' },
-            { icon: BookOpen, label: '역사', color: 'bg-amber-500' },
-            { icon: Building2, label: '박물관', color: 'bg-purple-500' },
-          ].map((category, index) => (
-            <button
-              key={index}
-              onClick={() => onSendMessage(category.label)}
-              className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all whitespace-nowrap flex-shrink-0"
-            >
-              <div className={`w-8 h-8 ${category.color} rounded-lg flex items-center justify-center`}>
-                <category.icon className="w-5 h-5 text-white" />
+            return (
+              <div
+                key={index}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${message.role === 'user'
+                    ? 'bg-gradient-to-r from-[#0088FF] to-[#0088FF]/90 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                    }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{displayContent}{isTyping && <span className="inline-block w-2 h-4 bg-gray-600 ml-1 animate-pulse">|</span>}</p>
+                  {isTranslateEnabled && message.role === 'assistant' && message.translatedContent && message.translatedContent !== message.content && (
+                    <p className="text-xs mt-1 opacity-70 italic">(Translated)</p>
+                  )}
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-900">{category.label}</span>
-            </button>
-          ))}
-        </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* 입력 영역 */}

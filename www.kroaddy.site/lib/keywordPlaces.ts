@@ -76,6 +76,43 @@ export const keywordPlaceMap: Record<string, Location[]> = {
       order: 6
 
     }
+  ],
+  '박물관': [
+    {
+      id: 'museum1',
+      name: '서울 역사 박물관',
+      address: '서울특별시 종로구 새문안로 55',
+      lat: 37.566295,
+      lng: 126.971916
+    },
+    {
+      id: 'museum2',
+      name: '대한민국 역사 박물관',
+      address: '서울특별시 종로구 세종대로 198',
+      lat: 37.574617,
+      lng: 126.977041
+    },
+    {
+      id: 'museum3',
+      name: '국립 고궁 박물관',
+      address: '서울특별시 종로구 사직로 12',
+      lat: 37.576389,
+      lng: 126.976944
+    },
+    {
+      id: 'museum4',
+      name: '국립 민속 박물관',
+      address: '서울특별시 종로구 삼청로 37',
+      lat: 37.581111,
+      lng: 126.978056
+    },
+    {
+      id: 'museum5',
+      name: '국립 중앙 박물관',
+      address: '서울특별시 용산구 서빙고로 137',
+      lat: 37.524972,
+      lng: 126.978417
+    }
   ]
 };
 
