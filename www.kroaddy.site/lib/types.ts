@@ -9,6 +9,7 @@ export interface Location {
   lng: number;
   placeUrl?: string;
   imageUrl?: string;
+  order?: number; // 경로 순서 (작을수록 먼저 방문)
 }
 
 // 여행 일정 전체

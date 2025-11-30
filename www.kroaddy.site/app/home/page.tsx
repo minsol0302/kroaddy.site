@@ -24,6 +24,7 @@ export default function Home() {
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [showChatbot, setShowChatbot] = useState(true);
   const [mapResetKey, setMapResetKey] = useState<number>(0);
+  const [drawRouteKey, setDrawRouteKey] = useState<number>(0);
 
   const handleSendMessage = (message: string) => {
     const newMessages = [...messages, { role: 'user' as const, content: message }];
@@ -221,6 +222,8 @@ export default function Home() {
       return;
     }
 
+    // '응' 키워드 처리 - 현재 위치와 지도에 표시된 장소들을 경로로 연결
+    if (message.includes('응') || message.trim() === '응') {
     // '응' 키워드 처리
     if (message.includes('응')) {
       // 작성중 메시지 추가
@@ -240,6 +243,11 @@ export default function Home() {
         };
         // 작성중 메시지를 실제 답변으로 교체
         setMessages([...newMessages, response]);
+
+        // 경로를 그리기 위해 drawRouteKey 증가
+        if (route.length > 0) {
+          setDrawRouteKey(prev => prev + 1);
+        }
 
         setScreen('chatResponse');
       }, 5000);
@@ -348,6 +356,7 @@ export default function Home() {
     setScreen('initial');
     setShowChatbot(true);
     setMapResetKey(prev => prev + 1); // 지도 초기화를 위한 키 증가
+    setDrawRouteKey(0); // 경로 그리기 키 초기화
   };
 
   return (
@@ -409,7 +418,7 @@ export default function Home() {
           {/* 지도 */}
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <div className="h-full">
-              <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} resetKey={mapResetKey} />
+              <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} resetKey={mapResetKey} drawRouteKey={drawRouteKey} />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>

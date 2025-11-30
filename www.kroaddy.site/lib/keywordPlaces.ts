@@ -11,35 +11,40 @@ export const keywordPlaceMap: Record<string, Location[]> = {
       name: '경복궁',
       address: '서울특별시 종로구 사직로 161',
       lat: 37.579617,
-      lng: 126.977041
+      lng: 126.977041,
+      order: 4
     },
     {
       id: 'place2',
       name: '청계천',
       address: '서울특별시 종로구 청계천로',
       lat: 37.569235,
-      lng: 126.978653
+      lng: 126.978653,
+      order: 3
     },
     {
       id: 'place10',
       name: '광장시장',
       address: '서울특별시 종로구 창경궁로 88',
       lat: 37.570326,
-      lng: 126.999629
+      lng: 126.999629,
+      order: 1
     },
     {
       id: 'place3',
       name: '명동대성당',
       address: '서울특별시 중구 명동길 74',
       lat: 37.563929,
-      lng: 126.987181
+      lng: 126.987181,
+      order: 2
     },
     {
       id: 'place4',
       name: '꽃밥에 피다 북촌 친환경 그로서란트',
       address: '서울특별시 종로구 계동길 37',
       lat: 37.581944,
-      lng: 126.985139
+      lng: 126.985139,
+      order: 5
     },
     {
       id: 'place5',
@@ -67,7 +72,8 @@ export const keywordPlaceMap: Record<string, Location[]> = {
       name: '청수당',
       address: '서울특별시 종로구 계동길 37-4',
       lat: 37.574070,
-      lng: 126.989837
+      lng: 126.989837,
+      order: 6
 
     }
   ],
