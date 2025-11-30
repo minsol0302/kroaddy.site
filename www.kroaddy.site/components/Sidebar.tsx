@@ -14,7 +14,7 @@ interface SidebarProps {
 
 export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: SidebarProps) {
   const router = useRouter();
-  
+
   const menuItems = [
     { icon: Languages, label: 'Translate', path: null },
     { icon: User, label: 'My Page', path: '/mypage' },
