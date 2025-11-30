@@ -75,7 +75,58 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
                   : 'bg-gray-100 text-gray-900'
                   }`}
               >
-                <p className="text-sm">{message.content}</p>
+                <div 
+                  className={`text-sm whitespace-pre-wrap ${message.role === 'assistant' ? 'prose prose-sm max-w-none' : ''}`}
+                  style={{
+                    lineHeight: '1.6',
+                  }}
+                >
+                  {message.role === 'assistant' ? (
+                    <div className="space-y-4">
+                      {message.content.split('\n').map((line, idx) => {
+                        // 제목 처리 (## 로 시작)
+                        if (line.trim().startsWith('## ')) {
+                          const title = line.replace('## ', '').trim();
+                          return (
+                            <h3 key={idx} className="font-bold text-base mt-4 mb-2 text-gray-900">
+                              {title}
+                            </h3>
+                          );
+                        }
+                        // 구분선 처리 (---)
+                        if (line.trim() === '---') {
+                          return <hr key={idx} className="my-3 border-gray-300" />;
+                        }
+                        // 굵은 텍스트 처리 (**로 감싸진 텍스트)
+                        if (line.includes('**')) {
+                          const parts = line.split(/(\*\*.*?\*\*)/g);
+                          return (
+                            <p key={idx} className="mb-2">
+                              {parts.map((part, partIdx) => {
+                                if (part.startsWith('**') && part.endsWith('**')) {
+                                  return <strong key={partIdx} className="font-semibold">{part.slice(2, -2)}</strong>;
+                                }
+                                return <span key={partIdx}>{part}</span>;
+                              })}
+                            </p>
+                          );
+                        }
+                        // 빈 줄 처리
+                        if (line.trim() === '') {
+                          return <br key={idx} />;
+                        }
+                        // 일반 텍스트
+                        return (
+                          <p key={idx} className="mb-2 text-gray-700">
+                            {line}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p>{message.content}</p>
+                  )}
+                </div>
               </div>
             </div>
           ))
