@@ -1,13 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Home, MessageSquare, MapPin, User, LogOut, Settings, FileText, Heart, ChevronRight } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
+import { t, getCurrentLanguage } from '@/lib/i18n';
+import { LanguageCode } from '@/lib/types';
 
 export default function MyPage() {
     const router = useRouter();
     const [activeMenu, setActiveMenu] = useState('mypage');
+    const { logout } = useAuthStore();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [uiLanguage, setUiLanguage] = useState<LanguageCode>(getCurrentLanguage());
+
+    // 언어 변경 감지
+    useEffect(() => {
+        const handleLanguageChange = () => {
+            setUiLanguage(getCurrentLanguage());
+        };
+
+        window.addEventListener('languageChanged', handleLanguageChange as EventListener);
+        return () => {
+            window.removeEventListener('languageChanged', handleLanguageChange as EventListener);
+        };
+    }, []);
 
     // 댓글 단 글 목록 (예시 데이터)
     const comments = [
@@ -38,11 +57,44 @@ export default function MyPage() {
     ];
 
     const menuItems = [
-        { id: 'home', label: '홈', icon: Home },
-        { id: 'reviews', label: '여행후기', icon: MessageSquare },
-        { id: 'status', label: '여행현황', icon: MapPin },
-        { id: 'mypage', label: '마이페이지', icon: User }
+        { id: 'home', labelKey: 'mypage.home', icon: Home },
+        { id: 'reviews', labelKey: 'mypage.travelReviews', icon: MessageSquare },
+        { id: 'status', labelKey: 'mypage.travelStatus', icon: MapPin },
+        { id: 'mypage', labelKey: 'mypage.myPage', icon: User }
     ];
+
+    const handleLogout = async () => {
+        if (isLoggingOut) return; // 중복 클릭 방지
+
+        // 확인 다이얼로그
+        if (!confirm(t('mypage.logoutConfirm', uiLanguage))) {
+            return;
+        }
+
+        setIsLoggingOut(true);
+
+        try {
+            // 백엔드 로그아웃 API 호출 (쿠키 삭제)
+            await fetch(`${API_BASE_URL}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include', // 쿠키 포함
+            });
+        } catch (error) {
+            console.error('로그아웃 API 호출 실패:', error);
+            // API 호출 실패해도 로컬 상태는 정리
+        }
+
+        // 로컬 스토리지 정리
+        if (typeof window !== 'undefined') {
+            localStorage.clear();
+        }
+
+        // Zustand 스토어에서 인증 상태 제거
+        logout();
+
+        // 메인 페이지로 리다이렉트
+        router.push('/');
+    };
 
     return (
         <div className="flex h-screen relative overflow-hidden">
@@ -70,14 +122,20 @@ export default function MyPage() {
                         return (
                             <button
                                 key={item.id}
-                                onClick={() => setActiveMenu(item.id)}
+                                onClick={() => {
+                                    setActiveMenu(item.id);
+                                    // 홈 버튼 클릭 시 /home으로 이동
+                                    if (item.id === 'home') {
+                                        router.push('/home');
+                                    }
+                                }}
                                 className={`w-full flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition-all duration-300 ${isActive
                                     ? 'bg-gradient-to-r from-red-500 to-blue-500 text-white shadow-md'
                                     : 'text-gray-700 hover:bg-gray-100/80 hover:text-gray-900'
                                     }`}
                             >
                                 <Icon className="w-5 h-5" />
-                                <span className="font-medium">{item.label}</span>
+                                <span className="font-medium">{t(item.labelKey, uiLanguage)}</span>
                             </button>
                         );
                     })}
@@ -85,9 +143,13 @@ export default function MyPage() {
 
                 {/* 로그아웃 */}
                 <div className="p-4 border-t border-gray-200/50">
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100/80 rounded-lg transition-all duration-300">
+                    <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100/80 rounded-lg transition-all duration-300 ${isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
                         <LogOut className="w-5 h-5" />
-                        <span className="font-medium">로그아웃</span>
+                        <span className="font-medium">{isLoggingOut ? t('mypage.loggingOut', uiLanguage) : t('mypage.logout', uiLanguage)}</span>
                         <ChevronRight className="w-4 h-4 ml-auto" />
                     </button>
                 </div>
@@ -96,7 +158,7 @@ export default function MyPage() {
             {/* 중앙 메인 콘텐츠 */}
             <div className="flex-1 overflow-auto relative z-10">
                 <div className="max-w-4xl mx-auto p-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-8 opacity-0 animate-fade-in-up">댓글 단 글</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-8 opacity-0 animate-fade-in-up">{t('mypage.commentsWritten', uiLanguage)}</h1>
 
                     {/* 댓글 목록 */}
                     <div className="space-y-4">
@@ -119,7 +181,7 @@ export default function MyPage() {
                                         <span className="text-sm text-gray-600">{comment.ageRange}</span>
                                     </div>
                                     <button className="px-4 py-2 bg-gradient-to-r from-red-500 to-blue-500 text-white rounded-lg hover:from-red-600 hover:to-blue-600 transition-all duration-300 text-sm font-medium shadow-sm hover:shadow-md">
-                                        확인
+                                        {t('mypage.confirm', uiLanguage)}
                                     </button>
                                 </div>
                             </div>
@@ -137,13 +199,13 @@ export default function MyPage() {
                     </div>
                     <h2 className="text-lg font-semibold text-gray-900 mb-1">asd · 40대</h2>
                     <span className="inline-block px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 rounded-full text-sm font-medium border border-yellow-200/50">
-                        인증 미완료
+                        {t('mypage.authIncomplete', uiLanguage)}
                     </span>
                 </div>
 
                 {/* 계정 섹션 */}
                 <div className="mb-8 opacity-0 animate-fade-in-up animation-delay-300">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-4">계정</h3>
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-4">{t('mypage.account', uiLanguage)}</h3>
                     <div className="space-y-2">
                         <button
                             onClick={() => router.push('/mypage/profile')}
@@ -151,14 +213,14 @@ export default function MyPage() {
                         >
                             <div className="flex items-center gap-3">
                                 <Settings className="w-5 h-5 text-gray-400" />
-                                <span>내 정보 관리</span>
+                                <span>{t('mypage.manageInfo', uiLanguage)}</span>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-400" />
                         </button>
                         <button className="w-full flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-gray-100/80 rounded-lg transition-all duration-300 border border-transparent hover:border-gray-200/50">
                             <div className="flex items-center gap-3">
                                 <User className="w-5 h-5 text-gray-400" />
-                                <span>인증</span>
+                                <span>{t('mypage.authentication', uiLanguage)}</span>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-400" />
                         </button>
@@ -167,26 +229,26 @@ export default function MyPage() {
 
                 {/* 글 관리 섹션 */}
                 <div className="opacity-0 animate-fade-in-up animation-delay-400">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-4">글 관리</h3>
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-4">{t('mypage.postManagement', uiLanguage)}</h3>
                     <div className="space-y-2">
                         <button className="w-full flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-gray-100/80 rounded-lg transition-all duration-300 border border-transparent hover:border-gray-200/50">
                             <div className="flex items-center gap-3">
                                 <FileText className="w-5 h-5 text-gray-400" />
-                                <span>내가 쓴 글</span>
+                                <span>{t('mypage.myPosts', uiLanguage)}</span>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-400" />
                         </button>
                         <button className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-red-50 to-blue-50 text-gray-900 rounded-lg border border-gray-200/50 shadow-sm">
                             <div className="flex items-center gap-3">
                                 <MessageSquare className="w-5 h-5 text-gray-700" />
-                                <span className="font-medium">댓글 단 글</span>
+                                <span className="font-medium">{t('mypage.commentsWritten', uiLanguage)}</span>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-700" />
                         </button>
                         <button className="w-full flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-gray-100/80 rounded-lg transition-all duration-300 border border-transparent hover:border-gray-200/50">
                             <div className="flex items-center gap-3">
                                 <Heart className="w-5 h-5 text-gray-400" />
-                                <span>좋아요 표시한 글</span>
+                                <span>{t('mypage.likedPosts', uiLanguage)}</span>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-400" />
                         </button>

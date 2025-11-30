@@ -1,0 +1,435 @@
+import { LanguageCode } from './types';
+
+/**
+ * 간단한 i18n 시스템
+ * Languages 선택 시 전체 UI 언어를 변경합니다.
+ */
+
+export interface Translations {
+    [key: string]: {
+        [lang in LanguageCode]?: string;
+    };
+}
+
+// UI 텍스트 번역 데이터
+export const translations: Translations = {
+    'chatbot.title': {
+        'ko': 'roaddy',
+        'en': 'roaddy',
+        'ja': 'roaddy',
+        'zh-CN': 'roaddy',
+        'zh-TW': 'roaddy',
+    },
+    'chatbot.subtitle': {
+        'ko': 'AI 여행 어시스턴트',
+        'en': 'AI Travel Assistant',
+        'ja': 'AI旅行アシスタント',
+        'zh-CN': 'AI旅行助手',
+        'zh-TW': 'AI旅行助手',
+    },
+    'chatbot.translate': {
+        'ko': '번역',
+        'en': 'Translate',
+        'ja': '翻訳',
+        'zh-CN': '翻译',
+        'zh-TW': '翻譯',
+    },
+    'chatbot.placeholder': {
+        'ko': '메시지를 입력하세요...',
+        'en': 'Type your message...',
+        'ja': 'メッセージを入力してください...',
+        'zh-CN': '输入您的消息...',
+        'zh-TW': '輸入您的訊息...',
+    },
+    'chatbot.welcome.title': {
+        'ko': '안녕하세요! 어디로 여행을 떠나고 싶으신가요?',
+        'en': 'Hello! Where would you like to travel?',
+        'ja': 'こんにちは！どこへ旅行したいですか？',
+        'zh-CN': '你好！你想去哪里旅行？',
+        'zh-TW': '你好！你想去哪裡旅行？',
+    },
+    'chatbot.welcome.subtitle': {
+        'ko': '관심 있는 장소나 카테고리를 물어보세요',
+        'en': 'Ask about places or categories you\'re interested in',
+        'ja': '興味のある場所やカテゴリーについて聞いてください',
+        'zh-CN': '询问您感兴趣的地方或类别',
+        'zh-TW': '詢問您感興趣的地方或類別',
+    },
+    'chatbot.translating': {
+        'ko': '번역 중...',
+        'en': 'Translating...',
+        'ja': '翻訳中...',
+        'zh-CN': '翻译中...',
+        'zh-TW': '翻譯中...',
+    },
+    'sidebar.languages': {
+        'ko': '언어',
+        'en': 'Languages',
+        'ja': '言語',
+        'zh-CN': '语言',
+        'zh-TW': '語言',
+    },
+    'sidebar.language.select': {
+        'ko': '언어 선택',
+        'en': 'Select Language',
+        'ja': '言語を選択',
+        'zh-CN': '选择语言',
+        'zh-TW': '選擇語言',
+    },
+    'sidebar.emergency': {
+        'ko': '응급상황',
+        'en': 'Emergency',
+        'ja': '緊急事態',
+        'zh-CN': '紧急情况',
+        'zh-TW': '緊急情況',
+    },
+    'sidebar.chat': {
+        'ko': '채팅',
+        'en': 'Chat',
+        'ja': 'チャット',
+        'zh-CN': '聊天',
+        'zh-TW': '聊天',
+    },
+    'sidebar.myPage': {
+        'ko': '마이페이지',
+        'en': 'My Page',
+        'ja': 'マイページ',
+        'zh-CN': '我的页面',
+        'zh-TW': '我的頁面',
+    },
+    'sidebar.support': {
+        'ko': '지원',
+        'en': 'Support',
+        'ja': 'サポート',
+        'zh-CN': '支持',
+        'zh-TW': '支援',
+    },
+    'sidebar.aboutUs': {
+        'ko': '회사 소개',
+        'en': 'About Us',
+        'ja': '会社について',
+        'zh-CN': '关于我们',
+        'zh-TW': '關於我們',
+    },
+    'emergency.title': {
+        'ko': '응급상황',
+        'en': 'Emergency',
+        'ja': '緊急事態',
+        'zh-CN': '紧急情况',
+        'zh-TW': '緊急情況',
+    },
+    'emergency.report': {
+        'ko': '응급 신고',
+        'en': 'Emergency Report',
+        'ja': '緊急通報',
+        'zh-CN': '紧急报告',
+        'zh-TW': '緊急報告',
+    },
+    'emergency.police': {
+        'ko': '경찰',
+        'en': 'Police',
+        'ja': '警察',
+        'zh-CN': '警察',
+        'zh-TW': '警察',
+    },
+    'emergency.embassy': {
+        'ko': '대사관',
+        'en': 'Embassy',
+        'ja': '大使館',
+        'zh-CN': '大使馆',
+        'zh-TW': '大使館',
+    },
+    'emergency.tel': {
+        'ko': '전화',
+        'en': 'TEL',
+        'ja': '電話',
+        'zh-CN': '电话',
+        'zh-TW': '電話',
+    },
+    'emergency.routeGuidance': {
+        'ko': '경로 안내',
+        'en': 'Route guidance',
+        'ja': 'ルート案内',
+        'zh-CN': '路线指引',
+        'zh-TW': '路線指引',
+    },
+    'mypage.home': {
+        'ko': '홈',
+        'en': 'Home',
+        'ja': 'ホーム',
+        'zh-CN': '首页',
+        'zh-TW': '首頁',
+    },
+    'mypage.travelReviews': {
+        'ko': '여행후기',
+        'en': 'Travel Reviews',
+        'ja': '旅行レビュー',
+        'zh-CN': '旅行评论',
+        'zh-TW': '旅行評論',
+    },
+    'mypage.travelStatus': {
+        'ko': '여행현황',
+        'en': 'Travel Status',
+        'ja': '旅行状況',
+        'zh-CN': '旅行状态',
+        'zh-TW': '旅行狀態',
+    },
+    'mypage.myPage': {
+        'ko': '마이페이지',
+        'en': 'My Page',
+        'ja': 'マイページ',
+        'zh-CN': '我的页面',
+        'zh-TW': '我的頁面',
+    },
+    'mypage.logout': {
+        'ko': '로그아웃',
+        'en': 'Logout',
+        'ja': 'ログアウト',
+        'zh-CN': '登出',
+        'zh-TW': '登出',
+    },
+    'mypage.loggingOut': {
+        'ko': '로그아웃 중...',
+        'en': 'Logging out...',
+        'ja': 'ログアウト中...',
+        'zh-CN': '正在登出...',
+        'zh-TW': '正在登出...',
+    },
+    'mypage.logoutConfirm': {
+        'ko': '로그아웃 하시겠습니까?',
+        'en': 'Do you want to log out?',
+        'ja': 'ログアウトしますか？',
+        'zh-CN': '您要登出吗？',
+        'zh-TW': '您要登出嗎？',
+    },
+    'mypage.commentsWritten': {
+        'ko': '댓글 단 글',
+        'en': 'Comments Written',
+        'ja': 'コメントした投稿',
+        'zh-CN': '已评论的帖子',
+        'zh-TW': '已評論的貼文',
+    },
+    'mypage.confirm': {
+        'ko': '확인',
+        'en': 'Confirm',
+        'ja': '確認',
+        'zh-CN': '确认',
+        'zh-TW': '確認',
+    },
+    'mypage.authIncomplete': {
+        'ko': '인증 미완료',
+        'en': 'Authentication Incomplete',
+        'ja': '認証未完了',
+        'zh-CN': '认证未完成',
+        'zh-TW': '認證未完成',
+    },
+    'mypage.account': {
+        'ko': '계정',
+        'en': 'Account',
+        'ja': 'アカウント',
+        'zh-CN': '账户',
+        'zh-TW': '帳戶',
+    },
+    'mypage.manageInfo': {
+        'ko': '내 정보 관리',
+        'en': 'Manage My Information',
+        'ja': '情報管理',
+        'zh-CN': '管理我的信息',
+        'zh-TW': '管理我的資訊',
+    },
+    'mypage.authentication': {
+        'ko': '인증',
+        'en': 'Authentication',
+        'ja': '認証',
+        'zh-CN': '认证',
+        'zh-TW': '認證',
+    },
+    'mypage.postManagement': {
+        'ko': '글 관리',
+        'en': 'Post Management',
+        'ja': '投稿管理',
+        'zh-CN': '帖子管理',
+        'zh-TW': '貼文管理',
+    },
+    'mypage.myPosts': {
+        'ko': '내가 쓴 글',
+        'en': 'My Posts',
+        'ja': '私の投稿',
+        'zh-CN': '我的帖子',
+        'zh-TW': '我的貼文',
+    },
+    'mypage.likedPosts': {
+        'ko': '좋아요 표시한 글',
+        'en': 'Liked Posts',
+        'ja': 'いいねした投稿',
+        'zh-CN': '点赞的帖子',
+        'zh-TW': '按讚的貼文',
+    },
+    'profile.back': {
+        'ko': '뒤로 가기',
+        'en': 'Back',
+        'ja': '戻る',
+        'zh-CN': '返回',
+        'zh-TW': '返回',
+    },
+    'profile.manageInfo': {
+        'ko': '내 정보 관리',
+        'en': 'Manage My Information',
+        'ja': '情報管理',
+        'zh-CN': '管理我的信息',
+        'zh-TW': '管理我的資訊',
+    },
+    'profile.infoDate': {
+        'ko': '정보 입력일:',
+        'en': 'Information entered on:',
+        'ja': '情報入力日:',
+        'zh-CN': '信息输入日期:',
+        'zh-TW': '資訊輸入日期:',
+    },
+    'profile.edit': {
+        'ko': '수정',
+        'en': 'Edit',
+        'ja': '編集',
+        'zh-CN': '编辑',
+        'zh-TW': '編輯',
+    },
+    'profile.gender': {
+        'ko': '성별',
+        'en': 'Gender',
+        'ja': '性別',
+        'zh-CN': '性别',
+        'zh-TW': '性別',
+    },
+    'profile.age': {
+        'ko': '나이',
+        'en': 'Age',
+        'ja': '年齢',
+        'zh-CN': '年龄',
+        'zh-TW': '年齡',
+    },
+    'profile.nationality': {
+        'ko': '국적',
+        'en': 'Nationality',
+        'ja': '国籍',
+        'zh-CN': '国籍',
+        'zh-TW': '國籍',
+    },
+    'profile.religion': {
+        'ko': '종교',
+        'en': 'Religion',
+        'ja': '宗教',
+        'zh-CN': '宗教',
+        'zh-TW': '宗教',
+    },
+    'profile.dietary': {
+        'ko': '식습관',
+        'en': 'Dietary',
+        'ja': '食習慣',
+        'zh-CN': '饮食习惯',
+        'zh-TW': '飲食習慣',
+    },
+    'profile.notEntered': {
+        'ko': '미입력',
+        'en': 'Not entered',
+        'ja': '未入力',
+        'zh-CN': '未输入',
+        'zh-TW': '未輸入',
+    },
+    'profile.noData': {
+        'ko': '아직 입력된 정보가 없습니다.',
+        'en': 'No information has been entered yet.',
+        'ja': 'まだ入力された情報がありません。',
+        'zh-CN': '尚未输入任何信息。',
+        'zh-TW': '尚未輸入任何資訊。',
+    },
+    'profile.goToEnter': {
+        'ko': '정보 입력하러 가기',
+        'en': 'Go to enter information',
+        'ja': '情報入力へ',
+        'zh-CN': '去输入信息',
+        'zh-TW': '去輸入資訊',
+    },
+    'profile.backendGuide': {
+        'ko': '백엔드 연동 안내',
+        'en': 'Backend Integration Guide',
+        'ja': 'バックエンド連携ガイド',
+        'zh-CN': '后端集成指南',
+        'zh-TW': '後端整合指南',
+    },
+    'profile.backendGuideDesc': {
+        'ko': '현재는 프론트엔드에서만 데이터를 관리하고 있습니다. 백엔드와 연동하려면 다음 작업이 필요합니다:',
+        'en': 'Currently, data is managed only on the frontend. To integrate with the backend, the following tasks are required:',
+        'ja': '現在、データはフロントエンドでのみ管理されています。バックエンドと連携するには、以下の作業が必要です:',
+        'zh-CN': '目前，数据仅在前端管理。要与后端集成，需要执行以下任务：',
+        'zh-TW': '目前，資料僅在前端管理。要與後端整合，需要執行以下任務：',
+    },
+    'profile.backendGuideItem1': {
+        'ko': '온보딩 완료 시: POST /api/user/profile - 사용자 정보 저장',
+        'en': 'On onboarding completion: POST /api/user/profile - Save user information',
+        'ja': 'オンボーディング完了時: POST /api/user/profile - ユーザー情報を保存',
+        'zh-CN': '完成入门时: POST /api/user/profile - 保存用户信息',
+        'zh-TW': '完成入門時: POST /api/user/profile - 儲存使用者資訊',
+    },
+    'profile.backendGuideItem2': {
+        'ko': '프로필 조회 시: GET /api/user/profile - 사용자 정보 조회',
+        'en': 'On profile view: GET /api/user/profile - Retrieve user information',
+        'ja': 'プロフィール閲覧時: GET /api/user/profile - ユーザー情報を取得',
+        'zh-CN': '查看个人资料时: GET /api/user/profile - 检索用户信息',
+        'zh-TW': '查看個人資料時: GET /api/user/profile - 檢索使用者資訊',
+    },
+    'profile.backendGuideItem3': {
+        'ko': '프로필 수정 시: PUT /api/user/profile - 사용자 정보 업데이트',
+        'en': 'On profile edit: PUT /api/user/profile - Update user information',
+        'ja': 'プロフィール編集時: PUT /api/user/profile - ユーザー情報を更新',
+        'zh-CN': '编辑个人资料时: PUT /api/user/profile - 更新用户信息',
+        'zh-TW': '編輯個人資料時: PUT /api/user/profile - 更新使用者資訊',
+    },
+    'profile.backendGuideItem4': {
+        'ko': '인증 토큰을 헤더에 포함하여 요청',
+        'en': 'Include authentication token in the request header',
+        'ja': 'リクエストヘッダーに認証トークンを含める',
+        'zh-CN': '在请求头中包含身份验证令牌',
+        'zh-TW': '在請求標頭中包含身份驗證令牌',
+    },
+};
+
+/**
+ * 현재 선택된 언어 가져오기
+ */
+export function getCurrentLanguage(): LanguageCode {
+    if (typeof window === 'undefined') {
+        return 'ko';
+    }
+    const selectedLang = localStorage.getItem('selectedLanguage') || '한국어';
+    const languageMap: Record<string, LanguageCode> = {
+        '한국어': 'ko',
+        'English': 'en',
+        '日本語': 'ja',
+        '简体中文': 'zh-CN',
+        '繁體中文': 'zh-TW',
+        'Français': 'fr',
+        'Deutsch': 'de',
+        'Tiếng Việt': 'vi',
+        'Italiano': 'it',
+        'العربية': 'ar',
+        'Bahasa Indonesia': 'id',
+        'ไทย': 'th',
+        'монгол': 'mn',
+        'Português': 'pt',
+        'Español': 'es',
+        'oʻzbekcha': 'uz',
+        'ខ្មែរ': 'km',
+        'नेपाली': 'ne',
+    };
+    return languageMap[selectedLang] || 'ko';
+}
+
+/**
+ * 번역된 텍스트 가져오기
+ */
+export function t(key: string, lang?: LanguageCode): string {
+    const currentLang = lang || getCurrentLanguage();
+    const translation = translations[key]?.[currentLang];
+    return translation || translations[key]?.['en'] || key;
+}
+

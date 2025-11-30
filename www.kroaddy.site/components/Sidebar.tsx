@@ -1,7 +1,8 @@
 // @ts-nocheck
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { t, getCurrentLanguage } from '../lib/i18n';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Languages, User, HeadphonesIcon, Building2, Compass, MessageSquare, Phone, MapPin, AlertCircle, AlertTriangle, Shield, Building } from 'lucide-react';
@@ -22,11 +23,67 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
   const router = useRouter();
   const [isLanguageDialogOpen, setIsLanguageDialogOpen] = useState(false);
   const [isEmergencyDialogOpen, setIsEmergencyDialogOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('한국어'); // 기본 언어
+  const [uiLanguage, setUiLanguage] = useState<string>('한국어');
+
+  // 컴포넌트 마운트 시 저장된 언어 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedLanguage = localStorage.getItem('selectedLanguage');
+      if (savedLanguage) {
+        setSelectedLanguage(savedLanguage);
+        // UI 언어도 업데이트
+        const langCode = getCurrentLanguage();
+        const languageNameMap: Record<string, string> = {
+          'ko': '한국어',
+          'en': 'English',
+          'ja': '日本語',
+          'zh-CN': '简体中文',
+          'zh-TW': '繁體中文',
+          'fr': 'Français',
+          'de': 'Deutsch',
+          'vi': 'Tiếng Việt',
+          'it': 'Italiano',
+          'ar': 'العربية',
+          'id': 'Bahasa Indonesia',
+          'th': 'ไทย',
+          'mn': 'монгол',
+          'pt': 'Português',
+          'es': 'Español',
+          'uz': 'oʻzbekcha',
+          'km': 'ខ្មែរ',
+          'ne': 'नेपाली',
+        };
+        setUiLanguage(languageNameMap[langCode] || savedLanguage);
+      } else {
+        // 기본값 설정
+        localStorage.setItem('selectedLanguage', '한국어');
+      }
+    }
+
+    // 언어 변경 이벤트 리스너
+    const handleLanguageChange = () => {
+      const langCode = getCurrentLanguage();
+      const languageNameMap: Record<string, string> = {
+        'ko': '한국어',
+        'en': 'English',
+        'ja': '日本語',
+        'zh-CN': '简体中文',
+        'zh-TW': '繁體中文',
+      };
+      setUiLanguage(languageNameMap[langCode] || '한국어');
+    };
+
+    window.addEventListener('languageChanged', handleLanguageChange as EventListener);
+    return () => {
+      window.removeEventListener('languageChanged', handleLanguageChange as EventListener);
+    };
+  }, []);
 
   const menuItems = [
-    { icon: User, label: 'My Page', path: '/mypage' },
-    { icon: HeadphonesIcon, label: 'Support', path: null },
-    { icon: Building2, label: 'About Us', path: null }
+    { icon: User, labelKey: 'sidebar.myPage', path: '/mypage' },
+    { icon: HeadphonesIcon, labelKey: 'sidebar.support', path: null },
+    { icon: Building2, labelKey: 'sidebar.aboutUs', path: null }
   ];
 
   const languages = [
@@ -82,7 +139,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
               }`}
           >
             <MessageSquare className="w-5 h-5 text-gray-600" />
-            <span className="text-[9px] text-gray-600">Chat</span>
+            <span className="text-[9px] text-gray-600">{t('sidebar.chat', getCurrentLanguage())}</span>
           </button>
         )}
 
@@ -93,7 +150,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
             className="flex flex-col items-center gap-1 hover:opacity-70 transition-opacity"
           >
             <item.icon className="w-5 h-5 text-gray-600" />
-            <span className="text-[9px] text-gray-600">{item.label}</span>
+            <span className="text-[9px] text-gray-600">{t(item.labelKey, getCurrentLanguage())}</span>
           </button>
         ))}
 
@@ -103,7 +160,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
           className="flex flex-col items-center gap-1 hover:opacity-70 transition-opacity"
         >
           <Languages className="w-5 h-5 text-gray-600" />
-          <span className="text-[9px] text-gray-600">Languages</span>
+          <span className="text-[9px] text-gray-600">{t('sidebar.languages', getCurrentLanguage())}</span>
         </button>
       </div>
 
@@ -113,24 +170,33 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
         className="mt-auto px-3 py-3 bg-red-500 text-white rounded-xl hover:opacity-90 transition-opacity flex flex-col items-center gap-1"
       >
         <AlertTriangle className="w-5 h-5" />
-        <span className="text-[9px]">emergency</span>
+        <span className="text-[9px]">{t('sidebar.emergency', getCurrentLanguage())}</span>
       </button>
 
       {/* 언어 선택 다이얼로그 */}
       <Dialog open={isLanguageDialogOpen} onOpenChange={setIsLanguageDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>언어 선택</DialogTitle>
+            <DialogTitle>{t('sidebar.language.select', getCurrentLanguage())}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-4 gap-3 mt-4">
             {languages.map((lang, index) => (
               <button
                 key={index}
                 onClick={() => {
-                  // 언어 선택 로직 추가 가능
+                  setSelectedLanguage(lang.name);
+                  // 로컬 스토리지에 선택한 언어 저장
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('selectedLanguage', lang.name);
+                  }
                   setIsLanguageDialogOpen(false);
+                  // 언어 변경 이벤트 발생 (부모 컴포넌트에서 감지 가능)
+                  window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang.name } }));
                 }}
-                className="text-left p-2 rounded hover:bg-gray-100 transition-colors text-sm"
+                className={`text-left p-2 rounded transition-colors text-sm ${selectedLanguage === lang.name
+                  ? 'bg-blue-100 border-2 border-blue-500'
+                  : 'hover:bg-gray-100'
+                  }`}
               >
                 <div className="font-medium">{lang.native}</div>
                 <div className="text-xs text-gray-500 mt-1">
@@ -146,14 +212,14 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
       <Dialog open={isEmergencyDialogOpen} onOpenChange={setIsEmergencyDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Emergency</DialogTitle>
+            <DialogTitle>{t('emergency.title', getCurrentLanguage())}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             {/* Emergency Report */}
             <div className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <AlertCircle className="w-5 h-5 text-red-500" />
-                <h3 className="font-semibold text-lg">Emergency Report</h3>
+                <h3 className="font-semibold text-lg">{t('emergency.report', getCurrentLanguage())}</h3>
               </div>
               <div className="flex gap-2">
                 <button
@@ -164,7 +230,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/70 text-white rounded-lg hover:bg-red-600/70 transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>TEL</span>
+                  <span>{t('emergency.tel', getCurrentLanguage())}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -174,7 +240,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/70 text-white rounded-lg hover:bg-blue-600/70 transition-colors"
                 >
                   <MapPin className="w-4 h-4" />
-                  <span>Route guidance</span>
+                  <span>{t('emergency.routeGuidance', getCurrentLanguage())}</span>
                 </button>
               </div>
             </div>
@@ -183,7 +249,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
             <div className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-lg">Police</h3>
+                <h3 className="font-semibold text-lg">{t('emergency.police', getCurrentLanguage())}</h3>
               </div>
               <div className="flex gap-2">
                 <button
@@ -194,7 +260,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/70 text-white rounded-lg hover:bg-red-600/70 transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>TEL</span>
+                  <span>{t('emergency.tel', getCurrentLanguage())}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -204,7 +270,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/70 text-white rounded-lg hover:bg-blue-600/70 transition-colors"
                 >
                   <MapPin className="w-4 h-4" />
-                  <span>Route guidance</span>
+                  <span>{t('emergency.routeGuidance', getCurrentLanguage())}</span>
                 </button>
               </div>
             </div>
@@ -213,7 +279,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
             <div className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Building className="w-5 h-5 text-green-500" />
-                <h3 className="font-semibold text-lg">Embassy</h3>
+                <h3 className="font-semibold text-lg">{t('emergency.embassy', getCurrentLanguage())}</h3>
               </div>
               <div className="flex gap-2">
                 <button
@@ -224,7 +290,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/70 text-white rounded-lg hover:bg-red-600/70 transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>TEL</span>
+                  <span>{t('emergency.tel', getCurrentLanguage())}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -234,7 +300,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/70 text-white rounded-lg hover:bg-blue-600/70 transition-colors"
                 >
                   <MapPin className="w-4 h-4" />
-                  <span>Route guidance</span>
+                  <span>{t('emergency.routeGuidance', getCurrentLanguage())}</span>
                 </button>
               </div>
             </div>
