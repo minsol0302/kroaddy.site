@@ -2,11 +2,10 @@
 import { Location } from "../lib/types";
 
 export const createOverlayContent = (location: Location, overlayId: string) => {
-    const closeId = `close-${overlayId}`;
-    const expandId = `expand-${overlayId}`;
-    const locationId = location.id || location.name;
+  const closeId = `close-${overlayId}`;
+  const expandId = `expand-${overlayId}`;
 
-    return `
+  return `
     <div class="custom-overlay-wrap" id="${overlayId}">
       <div class="info">
         <div class="title">
