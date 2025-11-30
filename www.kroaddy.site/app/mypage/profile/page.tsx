@@ -20,6 +20,7 @@ export default function ProfilePage() {
     const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
     const [completedAt, setCompletedAt] = useState<string | null>(null);
     const [uiLanguage, setUiLanguage] = useState<LanguageCode>(getCurrentLanguage());
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     // 언어 변경 감지
     useEffect(() => {
@@ -38,6 +39,7 @@ export default function ProfilePage() {
         if (typeof window !== 'undefined') {
             const savedData = localStorage.getItem('onboardingData');
             const savedDate = localStorage.getItem('onboardingCompletedAt');
+            const authStatus = localStorage.getItem('authStatus');
 
             if (savedData) {
                 try {
@@ -49,6 +51,11 @@ export default function ProfilePage() {
 
             if (savedDate) {
                 setCompletedAt(savedDate);
+            }
+
+            // 인증 상태 확인 (인증 완료 시 'completed'로 저장)
+            if (authStatus === 'completed') {
+                setIsAuthenticated(true);
             }
         }
     }, []);
@@ -149,19 +156,21 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* 백엔드 연동 안내 */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-2">{t('profile.backendGuide', uiLanguage)}</h3>
-                    <p className="text-sm text-blue-800 mb-4">
-                        {t('profile.backendGuideDesc', uiLanguage)}
-                    </p>
-                    <ul className="text-sm text-blue-700 space-y-2 list-disc list-inside">
-                        <li>{t('profile.backendGuideItem1', uiLanguage)}</li>
-                        <li>{t('profile.backendGuideItem2', uiLanguage)}</li>
-                        <li>{t('profile.backendGuideItem3', uiLanguage)}</li>
-                        <li>{t('profile.backendGuideItem4', uiLanguage)}</li>
-                    </ul>
-                </div>
+                {/* 백엔드 연동 안내 - 인증 완료 시에만 표시 */}
+                {isAuthenticated && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-blue-900 mb-2">{t('profile.backendGuide', uiLanguage)}</h3>
+                        <p className="text-sm text-blue-800 mb-4">
+                            {t('profile.backendGuideDesc', uiLanguage)}
+                        </p>
+                        <ul className="text-sm text-blue-700 space-y-2 list-disc list-inside">
+                            <li>{t('profile.backendGuideItem1', uiLanguage)}</li>
+                            <li>{t('profile.backendGuideItem2', uiLanguage)}</li>
+                            <li>{t('profile.backendGuideItem3', uiLanguage)}</li>
+                            <li>{t('profile.backendGuideItem4', uiLanguage)}</li>
+                        </ul>
+                    </div>
+                )}
             </div>
         </div>
     );
