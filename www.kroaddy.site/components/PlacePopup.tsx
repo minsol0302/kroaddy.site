@@ -22,7 +22,7 @@ export function PlacePopup({ place, onClose }: PlacePopupProps) {
   ];
 
   return (
-    <div className="w-[30%] bg-white border-l flex flex-col shadow-xl relative">
+    <div className="w-full h-full bg-white flex flex-col shadow-xl relative overflow-hidden">
       {/* 닫기 버튼 */}
       <button
         onClick={onClose}
