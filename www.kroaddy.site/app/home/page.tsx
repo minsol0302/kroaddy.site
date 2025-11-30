@@ -222,8 +222,6 @@ export default function Home() {
       return;
     }
 
-    // '응' 키워드 처리 - 현재 위치와 지도에 표시된 장소들을 경로로 연결
-    if (message.includes('응') || message.trim() === '응') {
     // '응' 키워드 처리
     if (message.includes('응')) {
       // 작성중 메시지 추가
