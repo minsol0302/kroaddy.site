@@ -8,9 +8,20 @@ export default function Home() {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden hide-scrollbar">
+    <main
+      className="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden hide-scrollbar"
+      style={{
+        backgroundImage: 'url(/hanoks/hanok4.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      {/* 배경 오버레이 */}
+      <div className="absolute inset-0 bg-black/20 pointer-events-none z-0"></div>
+
       {/* 배경 애니메이션 요소들 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="floating-circle floating-circle-1"></div>
         <div className="floating-circle floating-circle-2"></div>
         <div className="floating-circle floating-circle-3"></div>
@@ -35,11 +46,12 @@ export default function Home() {
       <div className="mb-8 sm:mb-10 md:mb-12 px-4 opacity-0 animate-fade-in-up animation-delay-200 relative z-10">
         <div className="title-wrapper relative inline-block animate-float-subtle">
           <h1
-            className="antialiased relative cursor-default transition-all duration-500"
+            className="antialiased relative cursor-default transition-all duration-500 drop-shadow-lg"
             style={{
               fontWeight: 700,
               fontSize: 'clamp(3.5rem, 10vw, 6rem)',
-              color: '#0a0a0a',
+              color: '#ffffff',
+              textShadow: '2px 2px 8px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 0, 0, 0.3)',
               letterSpacing: '-0.03em',
               lineHeight: '1.2'
             }}
@@ -48,7 +60,7 @@ export default function Home() {
               {/* K */}
               <span
                 className="inline-block transition-all duration-500"
-                style={{ color: isHovered ? '#dc2626' : '#0a0a0a' }}
+                style={{ color: isHovered ? '#dc2626' : '#ffffff' }}
               >
                 K
               </span>
@@ -61,7 +73,7 @@ export default function Home() {
                   transform: isHovered ? 'scale(1)' : 'scale(0)',
                   width: isHovered ? 'auto' : '0',
                   margin: isHovered ? '0 0.3em' : '0',
-                  color: '#9ca3af'
+                  color: '#d1d5db'
                 }}
               >
                 •
@@ -70,7 +82,7 @@ export default function Home() {
               {/* r */}
               <span
                 className="inline-block transition-all duration-500"
-                style={{ color: isHovered ? '#dc2626' : '#0a0a0a' }}
+                style={{ color: isHovered ? '#dc2626' : '#ffffff' }}
               >
                 r
               </span>
@@ -78,7 +90,7 @@ export default function Home() {
               {/* o */}
               <span
                 className="inline-block transition-all duration-500"
-                style={{ color: isHovered ? '#2563eb' : '#0a0a0a' }}
+                style={{ color: isHovered ? '#2563eb' : '#ffffff' }}
               >
                 o
               </span>
@@ -86,7 +98,7 @@ export default function Home() {
               {/* a */}
               <span
                 className="inline-block transition-all duration-500"
-                style={{ color: isHovered ? '#2563eb' : '#0a0a0a' }}
+                style={{ color: isHovered ? '#2563eb' : '#ffffff' }}
               >
                 a
               </span>
@@ -94,7 +106,7 @@ export default function Home() {
               {/* d */}
               <span
                 className="inline-block transition-all duration-500"
-                style={{ color: isHovered ? '#dc2626' : '#0a0a0a' }}
+                style={{ color: isHovered ? '#dc2626' : '#ffffff' }}
               >
                 d
               </span>
@@ -107,7 +119,7 @@ export default function Home() {
                   transform: isHovered ? 'scale(1)' : 'scale(0)',
                   width: isHovered ? 'auto' : '0',
                   margin: isHovered ? '0 0.3em' : '0',
-                  color: '#9ca3af'
+                  color: '#d1d5db'
                 }}
               >
                 •
@@ -117,7 +129,7 @@ export default function Home() {
               <span
                 className="inline-block transition-all duration-700"
                 style={{
-                  color: isHovered ? '#2563eb' : '#0a0a0a',
+                  color: isHovered ? '#2563eb' : '#ffffff',
                   display: 'inline-block'
                 }}
               >
@@ -127,7 +139,7 @@ export default function Home() {
               {/* y */}
               <span
                 className="inline-block transition-all duration-500"
-                style={{ color: isHovered ? '#dc2626' : '#0a0a0a' }}
+                style={{ color: isHovered ? '#dc2626' : '#ffffff' }}
               >
                 y
               </span>
@@ -144,8 +156,8 @@ export default function Home() {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          <span className="link-text font-semibold text-lg sm:text-xl">지금 시작하기</span>
-          <span className="link-arrow text-xl sm:text-2xl">→</span>
+          <span className="link-text font-semibold text-lg sm:text-xl text-white drop-shadow-md" style={{ textShadow: '1px 1px 4px rgba(0, 0, 0, 0.5)' }}>지금 시작하기</span>
+          <span className="link-arrow text-xl sm:text-2xl text-white drop-shadow-md" style={{ textShadow: '1px 1px 4px rgba(0, 0, 0, 0.5)' }}>→</span>
         </Link>
       </div>
     </main>
