@@ -20,6 +20,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<Location | null>(null);
   const [route, setRoute] = useState<Location[]>([]);
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [showChatbot, setShowChatbot] = useState(true);
 
   const handleSendMessage = (message: string) => {
@@ -63,30 +64,51 @@ export default function Home() {
         setScreen('chatResponse');
       }, 500);
     } else {
-      // 일반 메시지에 대한 응답
-      setTimeout(() => {
-        const response: Message = {
-          role: 'assistant',
-          content: `I received your message: "${message}". This is a placeholder response.`
-        };
-        setMessages([...newMessages, response]);
-      }, 500);
+      // 키워드 검색 처리 (특정 키워드가 없으면 일반 검색으로 간주)
+      // "search", "find", "찾기" 등의 키워드가 있거나, 메시지가 장소명일 가능성이 있는 경우
+      const trimmedMessage = message.trim();
+      if (trimmedMessage.length > 0) {
+        // 키워드 검색으로 처리
+        setSearchKeyword(trimmedMessage);
+        setScreen('chatResponse');
+
+        setTimeout(() => {
+          const response: Message = {
+            role: 'assistant',
+            content: `Searching for "${trimmedMessage}"...`
+          };
+          setMessages([...newMessages, response]);
+        }, 300);
+      } else {
+        // 일반 메시지에 대한 응답
+        setTimeout(() => {
+          const response: Message = {
+            role: 'assistant',
+            content: `I received your message: "${message}". This is a placeholder response.`
+          };
+          setMessages([...newMessages, response]);
+        }, 500);
+      }
     }
   };
 
   const handlePlaceClick = (place: Location) => {
     setSelectedPlace(place);
-    setScreen('placeDetail');
+    // screen은 변경하지 않고 chatResponse 유지
+    if (screen === 'initial') {
+      setScreen('chatResponse');
+    }
   };
 
   const handleClosePopup = () => {
     setSelectedPlace(null);
-    setScreen('chatResponse');
+    // screen은 변경하지 않음
   };
 
   const handleReset = () => {
     setMessages([]);
     setRoute([]);
+    setSearchKeyword('');
     setSelectedPlace(null);
     setScreen('initial');
     setShowChatbot(true);
@@ -110,50 +132,56 @@ export default function Home() {
       </div>
 
       {/* 챗봇과 지도 영역 (리사이저블) */}
-      {(screen === 'initial' || screen === 'chatResponse') ? (
-        showChatbot ? (
-          <ResizablePanelGroup direction="horizontal" className="flex-1">
-            {/* 챗봇 */}
-            <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-              <div className="h-full flex flex-col border-r">
+      {showChatbot ? (
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
+          {/* 챗봇 */}
+          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+            <div className="h-full flex flex-col border-r">
+              {/* 상세 정보 창 (위쪽 절반) */}
+              {selectedPlace ? (
+                <ResizablePanelGroup direction="vertical" className="h-full">
+                  <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+                    <div className="h-full overflow-hidden">
+                      <PlacePopup
+                        place={selectedPlace}
+                        onClose={() => {
+                          setSelectedPlace(null);
+                        }}
+                      />
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+                    <Chatbot
+                      messages={messages}
+                      onSendMessage={handleSendMessage}
+                    />
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              ) : (
                 <Chatbot
                   messages={messages}
                   onSendMessage={handleSendMessage}
                 />
-              </div>
-            </ResizablePanel>
+              )}
+            </div>
+          </ResizablePanel>
 
-            {/* 리사이저 핸들 */}
-            <ResizableHandle withHandle />
+          {/* 리사이저 핸들 */}
+          <ResizableHandle withHandle />
 
-            {/* 지도 */}
-            <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-              <div className="h-full">
-                <KakaoMap route={route} onPlaceClick={handlePlaceClick} />
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : (
-          /* 지도만 표시 (챗봇 숨김) */
-          <div className="flex-1 h-full">
-            <KakaoMap route={route} onPlaceClick={handlePlaceClick} />
-          </div>
-        )
+          {/* 지도 */}
+          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
+            <div className="h-full">
+              <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       ) : (
-        <>
-          {/* 장소 상세 팝업 (세 번째 화면) */}
-          {selectedPlace && (
-            <PlacePopup
-              place={selectedPlace}
-              onClose={handleClosePopup}
-            />
-          )}
-
-          {/* 지도 (전체 화면) */}
-          <div className="flex-1 h-full">
-            <KakaoMap route={route} onPlaceClick={handlePlaceClick} />
-          </div>
-        </>
+        /* 지도만 표시 (챗봇 숨김) */
+        <div className="flex-1 h-full">
+          <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} />
+        </div>
       )}
     </div>
   );

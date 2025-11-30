@@ -160,3 +160,136 @@ html {
   }
 }
 
+/* 카카오맵 커스텀 오버레이 스타일 */
+.custom-overlay-wrap {
+  position: absolute;
+  left: 0;
+  bottom: 40px;
+  width: 288px;
+  height: 132px;
+  margin-left: -144px;
+  text-align: left;
+  overflow: hidden;
+  font-size: 12px;
+  font-family: 'Malgun Gothic', dotum, '돋움', sans-serif;
+  line-height: 1.5;
+}
+
+.custom-overlay-wrap * {
+  padding: 0;
+  margin: 0;
+}
+
+.custom-overlay-wrap .info {
+  width: 286px;
+  height: 120px;
+  border-radius: 5px;
+  border-bottom: 2px solid #ccc;
+  border-right: 1px solid #ccc;
+  overflow: hidden;
+  background: #fff;
+}
+
+.custom-overlay-wrap .info:first-child {
+  border: 0;
+  box-shadow: 0px 1px 2px #888;
+}
+
+.custom-overlay-wrap .info .title {
+  padding: 5px 0 0 10px;
+  height: 30px;
+  background: #eee;
+  border-bottom: 1px solid #ddd;
+  font-size: 18px;
+  font-weight: bold;
+  position: relative;
+}
+
+.custom-overlay-wrap .info .close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #888;
+  width: 17px;
+  height: 17px;
+  background: url('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/overlay_close.png');
+  cursor: pointer;
+}
+
+.custom-overlay-wrap .info .close:hover {
+  cursor: pointer;
+}
+
+.custom-overlay-wrap .info .body {
+  position: relative;
+  overflow: hidden;
+}
+
+.custom-overlay-wrap .info .desc {
+  position: relative;
+  margin: 13px 0 0 90px;
+  height: 75px;
+}
+
+.custom-overlay-wrap .desc .ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-overlay-wrap .desc .jibun {
+  font-size: 11px;
+  color: #888;
+  margin-top: -2px;
+}
+
+.custom-overlay-wrap .info .img {
+  position: absolute;
+  top: 6px;
+  left: 5px;
+  width: 73px;
+  height: 71px;
+  border: 1px solid #ddd;
+  color: #888;
+  overflow: hidden;
+}
+
+.custom-overlay-wrap .info:after {
+  content: '';
+  position: absolute;
+  margin-left: -12px;
+  left: 50%;
+  bottom: 0;
+  width: 22px;
+  height: 12px;
+  background: url('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png');
+}
+
+.custom-overlay-wrap .info .link {
+  color: #5085BB;
+}
+
+.custom-overlay-wrap .info .expand-btn {
+  position: absolute;
+  top: 5px;
+  right: 30px;
+  background: #3182F6;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(49, 130, 246, 0.3);
+  padding: 0;
+}
+
+.custom-overlay-wrap .info .expand-btn:hover {
+  background: #2563EB;
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(49, 130, 246, 0.4);
+}
+
