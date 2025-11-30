@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Edit2 } from 'lucide-react';
 import Image from 'next/image';
+import { t, getCurrentLanguage } from '@/lib/i18n';
+import { LanguageCode } from '@/lib/types';
 
 interface OnboardingData {
     gender: string;
@@ -17,6 +19,19 @@ export default function ProfilePage() {
     const router = useRouter();
     const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
     const [completedAt, setCompletedAt] = useState<string | null>(null);
+    const [uiLanguage, setUiLanguage] = useState<LanguageCode>(getCurrentLanguage());
+
+    // 언어 변경 감지
+    useEffect(() => {
+        const handleLanguageChange = () => {
+            setUiLanguage(getCurrentLanguage());
+        };
+
+        window.addEventListener('languageChanged', handleLanguageChange as EventListener);
+        return () => {
+            window.removeEventListener('languageChanged', handleLanguageChange as EventListener);
+        };
+    }, []);
 
     useEffect(() => {
         // 로컬 스토리지에서 온보딩 데이터 불러오기
@@ -50,11 +65,11 @@ export default function ProfilePage() {
     };
 
     const infoItems = [
-        { label: '성별', key: 'gender', value: onboardingData?.gender || '미입력' },
-        { label: '나이', key: 'age', value: onboardingData?.age || '미입력' },
-        { label: '국적', key: 'nationality', value: onboardingData?.nationality || '미입력' },
-        { label: '종교', key: 'religion', value: onboardingData?.religion || '미입력' },
-        { label: '식습관', key: 'dietary', value: onboardingData?.dietary || '미입력' },
+        { labelKey: 'profile.gender', key: 'gender', value: onboardingData?.gender || t('profile.notEntered', uiLanguage) },
+        { labelKey: 'profile.age', key: 'age', value: onboardingData?.age || t('profile.notEntered', uiLanguage) },
+        { labelKey: 'profile.nationality', key: 'nationality', value: onboardingData?.nationality || t('profile.notEntered', uiLanguage) },
+        { labelKey: 'profile.religion', key: 'religion', value: onboardingData?.religion || t('profile.notEntered', uiLanguage) },
+        { labelKey: 'profile.dietary', key: 'dietary', value: onboardingData?.dietary || t('profile.notEntered', uiLanguage) },
     ];
 
     return (
@@ -75,7 +90,7 @@ export default function ProfilePage() {
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-6"
                     >
                         <ArrowLeft className="w-5 h-5" />
-                        <span>뒤로 가기</span>
+                        <span>{t('profile.back', uiLanguage)}</span>
                     </button>
 
                     <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -86,17 +101,17 @@ export default function ProfilePage() {
                                     <User className="w-12 h-12 text-gray-400" />
                                 </div>
                                 <div>
-                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">내 정보 관리</h1>
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('profile.manageInfo', uiLanguage)}</h1>
                                     {completedAt && (
                                         <p className="text-sm text-gray-500">
-                                            정보 입력일: {formatDate(completedAt)}
+                                            {t('profile.infoDate', uiLanguage)} {formatDate(completedAt)}
                                         </p>
                                     )}
                                 </div>
                             </div>
                             <button className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
                                 <Edit2 className="w-4 h-4" />
-                                <span>수정</span>
+                                <span>{t('profile.edit', uiLanguage)}</span>
                             </button>
                         </div>
 
@@ -109,7 +124,7 @@ export default function ProfilePage() {
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm text-gray-500 mb-1">{item.label}</p>
+                                            <p className="text-sm text-gray-500 mb-1">{t(item.labelKey, uiLanguage)}</p>
                                             <p className="text-lg font-semibold text-gray-900">
                                                 {item.value}
                                             </p>
@@ -122,12 +137,12 @@ export default function ProfilePage() {
                         {/* 데이터가 없을 때 */}
                         {!onboardingData && (
                             <div className="text-center py-12">
-                                <p className="text-gray-500 mb-4">아직 입력된 정보가 없습니다.</p>
+                                <p className="text-gray-500 mb-4">{t('profile.noData', uiLanguage)}</p>
                                 <button
                                     onClick={() => router.push('/onboarding')}
                                     className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
                                 >
-                                    정보 입력하러 가기
+                                    {t('profile.goToEnter', uiLanguage)}
                                 </button>
                             </div>
                         )}
@@ -136,15 +151,15 @@ export default function ProfilePage() {
 
                 {/* 백엔드 연동 안내 */}
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-2">백엔드 연동 안내</h3>
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">{t('profile.backendGuide', uiLanguage)}</h3>
                     <p className="text-sm text-blue-800 mb-4">
-                        현재는 프론트엔드에서만 데이터를 관리하고 있습니다. 백엔드와 연동하려면 다음 작업이 필요합니다:
+                        {t('profile.backendGuideDesc', uiLanguage)}
                     </p>
                     <ul className="text-sm text-blue-700 space-y-2 list-disc list-inside">
-                        <li>온보딩 완료 시: POST /api/user/profile - 사용자 정보 저장</li>
-                        <li>프로필 조회 시: GET /api/user/profile - 사용자 정보 조회</li>
-                        <li>프로필 수정 시: PUT /api/user/profile - 사용자 정보 업데이트</li>
-                        <li>인증 토큰을 헤더에 포함하여 요청</li>
+                        <li>{t('profile.backendGuideItem1', uiLanguage)}</li>
+                        <li>{t('profile.backendGuideItem2', uiLanguage)}</li>
+                        <li>{t('profile.backendGuideItem3', uiLanguage)}</li>
+                        <li>{t('profile.backendGuideItem4', uiLanguage)}</li>
                     </ul>
                 </div>
             </div>
