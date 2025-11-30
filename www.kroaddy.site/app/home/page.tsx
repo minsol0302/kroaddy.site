@@ -31,6 +31,14 @@ export default function Home() {
 
     // '근처' 키워드 처리
     if (message.includes('근처')) {
+      // 작성중 메시지 추가
+      const typingMessage: Message = {
+        role: 'assistant',
+        content: '작성중...'
+      };
+      setMessages([...newMessages, typingMessage]);
+      setScreen('chatResponse');
+
       setTimeout(() => {
         const responseContent = `당연하지! 너의 현재 위치는 동대문 디자인 플라자야. 내가 너의 정보에 맞춰서 장소를 추천해줄게.
 
@@ -90,6 +98,7 @@ export default function Home() {
           role: 'assistant',
           content: responseContent
         };
+        // 작성중 메시지를 실제 답변으로 교체
         setMessages([...newMessages, response]);
 
         // '근처' 키워드에 매핑된 장소들을 route로 설정
@@ -98,12 +107,76 @@ export default function Home() {
           setSearchKeyword(''); // 기존 검색 로직과 충돌 방지
         }
         setScreen('chatResponse');
-      }, 500);
+      }, 5000);
+      return;
+    }
+
+    // '박물관' 키워드 처리
+    if (message.includes('박물관')) {
+      // 작성중 메시지 추가
+      const typingMessage: Message = {
+        role: 'assistant',
+        content: '작성중...'
+      };
+      setMessages([...newMessages, typingMessage]);
+      setScreen('chatResponse');
+
+      setTimeout(() => {
+        const responseContent = `🏛️ 서울 역사 박물관 (Seoul Museum of History)
+
+서울이 어떻게 지금의 도시가 되었는지 한눈에 볼 수 있는 박물관이야. 조선시대 한양부터 현대 서울까지 변화 과정을 스토리처럼 정리해놔서 외국인들도 이해하기 쉬워. 도시의 과거·현재 감성을 동시에 느낄 수 있는 곳!
+
+---
+
+🇰🇷 대한민국 역사 박물관 (National Museum of Korean Contemporary History)
+
+한국의 현대사만 집중적으로 보여주는 곳이야. 전쟁, 산업화, 민주화 같은 굵직한 사건들을 쉽고 생생하게 구성해놔서, 한국 사회가 어떻게 발전해 왔는지 빠르게 이해할 수 있어. 외국인 방문객들에게 특히 인기 많아.
+
+---
+
+👑 국립 고궁 박물관 (National Palace Museum of Korea)
+
+조선 왕실의 문화와 유물이 가득한 박물관이야. 왕이 쓰던 생활도구부터 화려한 의식용 물품까지 전시돼 있어서, 궁궐 문화에 관심 있는 사람들은 완전 좋아할 스타일! 경복궁 바로 옆이라 동선도 최고야.
+
+---
+
+🏡 국립 민속 박물관 (National Folk Museum of Korea)
+
+한국인의 옛날 생활 문화를 재현해둔 박물관이야. 전통 의식주, 풍습, 도구들이 진짜처럼 꾸며져 있어서 시간여행 온 느낌! 한국인의 일상과 전통을 깊게 알고 싶은 외국인들에게 완전 찰떡이야.
+
+---
+
+🏛️ 국립 중앙 박물관 (National Museum of Korea)
+
+한국에서 가장 큰 국립 박물관으로, 선사시대부터 조선까지 한국 역사를 통째로 보여줘. 규모도 크고 전시품도 세계급이라 한 번 들어가면 시간 순삭! 한국 역사와 예술을 폭넓게 이해하고 싶은 사람들은 꼭 가야 하는 명소야.`;
+
+        const response: Message = {
+          role: 'assistant',
+          content: responseContent
+        };
+        // 작성중 메시지를 실제 답변으로 교체
+        setMessages([...newMessages, response]);
+
+        // '박물관' 키워드에 매핑된 장소들을 route로 설정
+        if (keywordPlaceMap['박물관']) {
+          setRoute(keywordPlaceMap['박물관']);
+          setSearchKeyword(''); // 기존 검색 로직과 충돌 방지
+        }
+        setScreen('chatResponse');
+      }, 5000);
       return;
     }
 
     // '추천' 키워드 처리
     if (message.includes('추천')) {
+      // 작성중 메시지 추가
+      const typingMessage: Message = {
+        role: 'assistant',
+        content: '작성중...'
+      };
+      setMessages([...newMessages, typingMessage]);
+      setScreen('chatResponse');
+
       setTimeout(() => {
         const responseContent = `이 곳은 어때? 리뷰도 좋고! 인기가 많은 식당이야!
 
@@ -121,6 +194,7 @@ export default function Home() {
           role: 'assistant',
           content: responseContent
         };
+        // 작성중 메시지를 실제 답변으로 교체
         setMessages([...newMessages, response]);
 
         // 기존 route에서 특정 장소 제거하고 새 장소 추가
@@ -143,12 +217,20 @@ export default function Home() {
           setSearchKeyword(''); // 기존 검색 로직과 충돌 방지
         }
         setScreen('chatResponse');
-      }, 500);
+      }, 5000);
       return;
     }
 
     // '응' 키워드 처리
     if (message.includes('응')) {
+      // 작성중 메시지 추가
+      const typingMessage: Message = {
+        role: 'assistant',
+        content: '작성중...'
+      };
+      setMessages([...newMessages, typingMessage]);
+      setScreen('chatResponse');
+
       setTimeout(() => {
         const responseContent = `그래 좋아 네가 이동하면서 장소의 숨겨진 이야기를 알려줄게! 도움이 필요하면 언제든지 물어봐!`;
 
@@ -156,15 +238,24 @@ export default function Home() {
           role: 'assistant',
           content: responseContent
         };
+        // 작성중 메시지를 실제 답변으로 교체
         setMessages([...newMessages, response]);
 
         setScreen('chatResponse');
-      }, 500);
+      }, 5000);
       return;
     }
 
     // Historic sites recommendation simulation
     if (message.toLowerCase().includes('historic') && (message.toLowerCase().includes('recommend') || message.toLowerCase().includes('suggest'))) {
+      // 작성중 메시지 추가
+      const typingMessage: Message = {
+        role: 'assistant',
+        content: '작성중...'
+      };
+      setMessages([...newMessages, typingMessage]);
+      setScreen('chatResponse');
+
       setTimeout(() => {
         const response: Message = {
           role: 'assistant',
@@ -198,7 +289,7 @@ export default function Home() {
         ];
         setRoute(recommendedRoute);
         setScreen('chatResponse');
-      }, 500);
+      }, 5000);
     } else {
       // 키워드 검색 처리 (특정 키워드가 없으면 일반 검색으로 간주)
       // "search", "find", "찾기" 등의 키워드가 있거나, 메시지가 장소명일 가능성이 있는 경우
@@ -217,13 +308,21 @@ export default function Home() {
         }, 300);
       } else {
         // 일반 메시지에 대한 응답
+        // 작성중 메시지 추가
+        const typingMessage: Message = {
+          role: 'assistant',
+          content: '작성중...'
+        };
+        setMessages([...newMessages, typingMessage]);
+        setScreen('chatResponse');
+
         setTimeout(() => {
           const response: Message = {
             role: 'assistant',
             content: `I received your message: "${message}". This is a placeholder response.`
           };
           setMessages([...newMessages, response]);
-        }, 500);
+        }, 5000);
       }
     }
   };
