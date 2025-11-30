@@ -24,7 +24,6 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
   const [isEmergencyDialogOpen, setIsEmergencyDialogOpen] = useState(false);
 
   const menuItems = [
-    { icon: Languages, label: 'Translate', path: null },
     { icon: User, label: 'My Page', path: '/mypage' },
     { icon: HeadphonesIcon, label: 'Support', path: null },
     { icon: Building2, label: 'About Us', path: null }
@@ -108,7 +107,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
         </button>
       </div>
 
-      {/* 탐험모드 버튼 */}
+      {/* 응급사항항 버튼 */}
       <button
         onClick={() => setIsEmergencyDialogOpen(true)}
         className="mt-auto px-3 py-3 bg-red-500 text-white rounded-xl hover:opacity-90 transition-opacity flex flex-col items-center gap-1"
@@ -162,7 +161,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                     window.location.href = 'tel:112';
                     setIsEmergencyDialogOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/70 text-white rounded-lg hover:bg-red-600/70 transition-colors"
                 >
                   <Phone className="w-4 h-4" />
                   <span>TEL</span>
@@ -172,7 +171,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                     // 경로 안내 로직 추가 가능
                     setIsEmergencyDialogOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/70 text-white rounded-lg hover:bg-blue-600/70 transition-colors"
                 >
                   <MapPin className="w-4 h-4" />
                   <span>Route guidance</span>
@@ -192,7 +191,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                     window.location.href = 'tel:112';
                     setIsEmergencyDialogOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/70 text-white rounded-lg hover:bg-red-600/70 transition-colors"
                 >
                   <Phone className="w-4 h-4" />
                   <span>TEL</span>
@@ -202,7 +201,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                     // 경로 안내 로직 추가 가능
                     setIsEmergencyDialogOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/70 text-white rounded-lg hover:bg-blue-600/70 transition-colors"
                 >
                   <MapPin className="w-4 h-4" />
                   <span>Route guidance</span>
@@ -222,7 +221,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                     // 대사관 전화번호 로직 추가 가능
                     setIsEmergencyDialogOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/70 text-white rounded-lg hover:bg-red-600/70 transition-colors"
                 >
                   <Phone className="w-4 h-4" />
                   <span>TEL</span>
@@ -232,7 +231,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                     // 경로 안내 로직 추가 가능
                     setIsEmergencyDialogOpen(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/70 text-white rounded-lg hover:bg-blue-600/70 transition-colors"
                 >
                   <MapPin className="w-4 h-4" />
                   <span>Route guidance</span>

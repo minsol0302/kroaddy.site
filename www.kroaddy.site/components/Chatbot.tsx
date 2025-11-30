@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Languages } from 'lucide-react';
 import { Message } from '../lib/types';
 
 interface ChatbotProps {
@@ -14,6 +14,7 @@ interface ChatbotProps {
 
 export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
   const [input, setInput] = useState('');
+  const [isTranslateEnabled, setIsTranslateEnabled] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +28,30 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
     <div className="flex flex-col h-full bg-white">
       {/* 헤더 */}
       <div className="p-6 border-b">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0088FF] to-[#FF383C] flex items-center justify-center">
-            <span className="text-white">R</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0088FF] to-[#FF383C] flex items-center justify-center">
+              <span className="text-white">R</span>
+            </div>
+            <div>
+              <h2 className="text-gray-900">roaddy</h2>
+              <p className="text-xs text-gray-500">AI Travel Assistant</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-gray-900">roaddy</h2>
-            <p className="text-xs text-gray-500">AI Travel Assistant</p>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Translate</span>
+            <button
+              onClick={() => setIsTranslateEnabled(!isTranslateEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${isTranslateEnabled
+                ? 'bg-green-500 focus:ring-green-500'
+                : 'bg-gray-300 focus:ring-gray-400'
+                }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-200 ease-in-out ${isTranslateEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+              />
+            </button>
           </div>
         </div>
       </div>
