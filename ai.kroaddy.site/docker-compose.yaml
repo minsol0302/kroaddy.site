@@ -10,3 +10,12 @@ services:
     ports:
       - "9001:9001"
     container_name: crawlerservice
+
+  poirecommendservice:
+    build: ./services/poirecommendservice
+    container_name: poirecommendservice
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./services/poirecommendservice/app:/app/app
+    restart: unless-stopped

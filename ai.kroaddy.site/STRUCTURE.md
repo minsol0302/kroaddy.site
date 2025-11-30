@@ -30,11 +30,26 @@ ai.kroaddy.site/
     │   │       └── danawa.py         # 다나와 제품 크롤링
     │   ├── Dockerfile          # Crawler 서비스 Docker 이미지 설정
     │   └── requirements.txt    # Crawler 서비스 의존성
-    └── chatbotservice/         # 챗봇 서비스
+    ├── chatbotservice/         # 챗봇 서비스
+    │   ├── app/
+    │   │   └── price_analyzer.py  # 가격 분석 모듈 (현재 비어있음)
+    │   ├── Dockerfile          # Chatbot 서비스 Docker 이미지 설정
+    │   └── requirements.txt    # Chatbot 서비스 의존성
+    └── poirecommendservice/    # POI 추천 서비스
         ├── app/
-        │   └── price_analyzer.py  # 가격 분석 모듈 (현재 비어있음)
-        ├── Dockerfile          # Chatbot 서비스 Docker 이미지 설정
-        └── requirements.txt    # Chatbot 서비스 의존성
+        │   ├── main.py         # POI 추천 서비스 메인 애플리케이션
+        │   ├── model_runner.py # 모델 실행 및 결과 처리
+        │   ├── inputdata/      # 입력 데이터
+        │   │   └── tn_visit_area_info_E.csv  # 방문 지역 정보 데이터
+        │   ├── models/         # 모델 파일
+        │   │   ├── E_capital_model.py  # 추천 모델 스크립트
+        │   │   └── svd_model_E.pkl     # 학습된 SVD 모델 파일
+        │   ├── outputs/        # 출력 결과
+        │   │   └── E_recommendations.csv  # 추천 결과 CSV
+        │   └── preprocessed/   # 전처리된 데이터
+        │       └── dfE.csv     # 전처리된 데이터프레임
+        ├── Dockerfile          # POI 추천 서비스 Docker 이미지 설정
+        └── requirements.txt    # POI 추천 서비스 의존성
 ```
 
 ## 서비스 상세
@@ -122,6 +137,53 @@ uvicorn app.main:app --host 0.0.0.0 --port 9001
 - `fastapi==0.104.1`
 - `uvicorn==0.24.0`
 
+### 4. POI Recommend Service (포트: 8003)
+**위치**: `services/poirecommendservice/app/main.py`
+
+**역할**:
+- 사용자 기반 장소(POI) 추천 서비스
+- 여행로그 데이터를 활용한 추천 모델 실행
+- SVD(Singular Value Decomposition) 기반 협업 필터링
+
+**주요 엔드포인트**:
+- `GET /recommend?user_id=사용자ID` - 특정 사용자에 대한 장소 추천 반환
+
+**주요 파일**:
+- **main.py**: FastAPI 애플리케이션, `/recommend` 엔드포인트 제공
+- **model_runner.py**: 모델 실행 로직
+  - `E_capital_model.py` 스크립트를 subprocess로 실행
+  - 결과 CSV 파일(`E_recommendations.csv`)에서 사용자별 추천 필터링
+- **models/E_capital_model.py**: 추천 모델 스크립트
+  - 전처리된 데이터를 사용하여 추천 생성
+  - SVD 모델(`svd_model_E.pkl`) 사용
+- **inputdata/tn_visit_area_info_E.csv**: 원본 방문 지역 정보 데이터
+- **preprocessed/dfE.csv**: 전처리된 데이터
+- **outputs/E_recommendations.csv**: 모델 실행 결과 추천 데이터
+
+**동작 방식**:
+1. 사용자 ID를 받아 `/recommend` 엔드포인트 호출
+2. `model_runner.py`의 `run_recommend_model()` 함수 실행
+3. `E_capital_model.py` 스크립트를 subprocess로 실행하여 추천 생성
+4. 생성된 `E_recommendations.csv`에서 해당 사용자 ID의 추천만 필터링하여 반환
+
+**의존성**:
+- `fastapi`
+- `uvicorn`
+- `pandas`
+- `scikit-surprise` (SVD 모델용)
+- `numpy`
+- `joblib` (모델 로드용)
+
+**Docker 설정**:
+- Python 3.10 기반
+- 포트 8003 노출
+- 볼륨 마운트: `./services/poirecommendservice/app:/app/app` (개발 시 코드 변경 반영)
+
+**실행 명령**:
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8003
+```
+
 ## Docker Compose 설정
 
 **파일**: `docker-compose.yaml`
@@ -129,6 +191,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 9001
 **서비스 구성**:
 1. **gateway**: 포트 9000
 2. **crawlerservice**: 포트 9001
+3. **poirecommendservice**: 포트 8003 (볼륨 마운트 포함)
 
 **실행 방법**:
 ```bash
@@ -159,6 +222,12 @@ GET http://localhost:9001/bugsmusic
 
 # 뉴스 통합 검색
 GET http://localhost:9001/news?keywords=시위,폭행
+```
+
+### POI Recommend 서비스 호출
+```bash
+# 사용자 장소 추천
+GET http://localhost:8003/recommend?user_id=사용자ID
 ```
 
 ## 주요 기능
