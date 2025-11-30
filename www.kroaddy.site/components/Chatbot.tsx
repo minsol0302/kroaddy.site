@@ -202,6 +202,97 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
     }
   };
 
+  // 마크다운 렌더링 함수 (ChatGPT 스타일)
+  const renderMarkdown = (text: string) => {
+    if (!text) return null;
+
+    // 줄바꿈 처리
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let currentParagraph: string[] = [];
+
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        const paragraphText = currentParagraph.join(' ').trim();
+        if (paragraphText) {
+          elements.push(
+            <p key={elements.length} className="text-sm mb-2 leading-relaxed">
+              {renderInlineMarkdown(paragraphText)}
+            </p>
+          );
+        }
+        currentParagraph = [];
+      }
+    };
+
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+
+      // 구분선 처리 (---)
+      if (trimmedLine === '---' || trimmedLine.match(/^-{3,}$/)) {
+        flushParagraph();
+        elements.push(
+          <hr key={elements.length} className="my-4 border-gray-300" />
+        );
+        return;
+      }
+
+      // 제목 처리 (##)
+      if (trimmedLine.startsWith('## ')) {
+        flushParagraph();
+        const titleText = trimmedLine.substring(3).trim();
+        elements.push(
+          <h2 key={elements.length} className="text-base font-bold mt-4 mb-2 text-gray-900">
+            {renderInlineMarkdown(titleText)}
+          </h2>
+        );
+        return;
+      }
+
+      // 빈 줄 처리
+      if (trimmedLine === '') {
+        flushParagraph();
+        return;
+      }
+
+      // 일반 텍스트
+      currentParagraph.push(trimmedLine);
+    });
+
+    flushParagraph();
+
+    return <div className="markdown-content">{elements}</div>;
+  };
+
+  // 인라인 마크다운 처리 (볼드 등)
+  const renderInlineMarkdown = (text: string): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    const boldRegex = /\*\*(.+?)\*\*/g;
+    let match;
+
+    while ((match = boldRegex.exec(text)) !== null) {
+      // 볼드 앞의 텍스트
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      // 볼드 텍스트
+      parts.push(
+        <strong key={match.index} className="font-bold">
+          {match[1]}
+        </strong>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    // 남은 텍스트
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : [text];
+  };
+
   return (
     <div className="flex flex-col h-full bg-white">
       {/* 헤더 */}
