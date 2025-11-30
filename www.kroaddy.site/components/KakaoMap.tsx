@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Script from "next/script";
-import { createOverlayContent } from "./CustomOverlay";
+import { createMarkerTooltipContent } from "./MarkerTooltip";
 import { Location } from "../lib/types";
 import { keywordPlaceMap } from "../lib/keywordPlaces";
 
@@ -23,14 +23,12 @@ interface KakaoMapProps {
 // 전역으로 onPlaceClick 저장 (이벤트 핸들러에서 접근하기 위해)
 let globalOnPlaceClick: ((place: Location) => void) | undefined = undefined;
 
+
 export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick, resetKey = 0, drawRouteKey = 0 }: KakaoMapProps) {
   const mapRef = useRef<any>(null);
-  const customOverlaysRef = useRef<any[]>([]);
   const markersRef = useRef<any[]>([]);
-  const overlayLocationMapRef = useRef<Map<any, Location>>(new Map());
-  // 지도 클릭으로 생성된 마커와 오버레이 (route와 별도 관리)
-  const clickMarkerRef = useRef<any>(null);
-  const clickOverlayRef = useRef<any>(null);
+  // 마커 hover tooltip 저장
+  const markerTooltipsRef = useRef<Map<any, any>>(new Map());
   // 키워드 검색으로 생성된 마커 (route와 별도 관리)
   const searchMarkersRef = useRef<any[]>([]);
   // 현재 위치 마커 및 원형 오버레이
@@ -43,52 +41,39 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
 
   const KAKAO_MAP_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY;
 
-  // 지도 클릭으로 생성된 Location 저장
-  const clickLocationRef = useRef<Location | null>(null);
 
   // onPlaceClick을 전역에 저장 (이벤트 핸들러에서 접근하기 위해)
   useEffect(() => {
     globalOnPlaceClick = onPlaceClick;
   }, [onPlaceClick]);
 
-  // 모든 오버레이 닫기
-  const closeAllOverlays = () => {
-    customOverlaysRef.current.forEach((overlay) => {
-      if (overlay) overlay.setMap(null);
-    });
-  };
-
-  // 기존 오버레이와 마커 제거 (route 기반만)
+  // 기존 마커와 tooltip 제거 (route 기반만)
   const clearOverlays = () => {
-    customOverlaysRef.current.forEach((overlay) => {
-      if (overlay) overlay.setMap(null);
-    });
-    customOverlaysRef.current = [];
-
     markersRef.current.forEach((marker) => {
       if (marker) marker.setMap(null);
     });
     markersRef.current = [];
-    overlayLocationMapRef.current.clear();
+
+    // tooltip 제거
+    markerTooltipsRef.current.forEach((tooltip) => {
+      if (tooltip) tooltip.setMap(null);
+    });
+    markerTooltipsRef.current.clear();
   };
 
-  // 지도 클릭으로 생성된 마커와 오버레이 제거
-  const clearClickMarker = () => {
-    if (clickMarkerRef.current) {
-      clickMarkerRef.current.setMap(null);
-      clickMarkerRef.current = null;
-    }
-    if (clickOverlayRef.current) {
-      clickOverlayRef.current.setMap(null);
-      clickOverlayRef.current = null;
-    }
-    clickLocationRef.current = null;
-  };
 
   // 키워드 검색으로 생성된 마커 제거
   const clearSearchMarkers = () => {
     searchMarkersRef.current.forEach((marker) => {
-      if (marker) marker.setMap(null);
+      if (marker) {
+        marker.setMap(null);
+        // 검색 마커의 tooltip도 제거
+        const tooltip = markerTooltipsRef.current.get(marker);
+        if (tooltip) {
+          tooltip.setMap(null);
+          markerTooltipsRef.current.delete(marker);
+        }
+      }
     });
     searchMarkersRef.current = [];
   };
@@ -248,86 +233,261 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   const createOverlays = (map: any) => {
     if (!route || route.length === 0) return;
 
+    const places = new window.kakao.maps.services.Places();
+
     route.forEach((location) => {
-      // 마커 생성
-      const marker = new window.kakao.maps.Marker({
-        position: new window.kakao.maps.LatLng(location.lat, location.lng),
-        map: map,
-      });
-      markersRef.current.push(marker);
+      // 카카오맵 Places API로 장소명으로 검색하여 좌표 가져오기
+      const searchPlaceAndCreateMarker = () => {
+        // 장소명으로 검색 (keywordPlaces.ts의 name 사용)
+        places.keywordSearch(location.name, (data: any, status: any) => {
+          let apiPlaceInfo: any = null;
+          let markerPosition: { lat: number; lng: number } = { lat: location.lat, lng: location.lng };
 
-      // 커스텀 오버레이 생성 (카카오맵 API 방식 - CSS로 위치 조정)
-      const overlayId = `overlay-${location.id || location.name}`;
-      const content = createOverlayContent(location, overlayId);
+          if (status === window.kakao.maps.services.Status.OK && data && data.length > 0) {
+            // 1순위: 장소명이 정확히 일치하는 것 찾기
+            const exactMatch = data.find((place: any) => {
+              return place.place_name === location.name ||
+                place.place_name.replace(/\s/g, '') === location.name.replace(/\s/g, '');
+            });
 
-      const customOverlay = new window.kakao.maps.CustomOverlay({
-        position: new window.kakao.maps.LatLng(location.lat, location.lng),
-        content: content,
-        // xAnchor, yAnchor 제거 - CSS로 위치 조정
-      });
+            if (exactMatch) {
+              apiPlaceInfo = exactMatch;
+              markerPosition = {
+                lat: parseFloat(exactMatch.y),
+                lng: parseFloat(exactMatch.x)
+              };
+            } else {
+              // 2순위: 장소명이 포함되는 것 중에서 좌표가 가장 가까운 것 찾기
+              const matchingPlaces = data.filter((place: any) => {
+                return place.place_name.includes(location.name) ||
+                  location.name.includes(place.place_name);
+              });
 
-      // 초기에는 오버레이를 숨김 상태로 설정
-      customOverlay.setMap(null);
-      customOverlaysRef.current.push(customOverlay);
-      overlayLocationMapRef.current.set(customOverlay, location);
+              if (matchingPlaces.length > 0) {
+                let nearestPlace = matchingPlaces[0];
+                let minDistance = Infinity;
 
-      // 닫기 버튼 이벤트 리스너 등록
-      setTimeout(() => {
-        const closeBtn = document.getElementById(`close-${overlayId}`);
-        if (closeBtn) {
-          closeBtn.onclick = () => {
-            customOverlay.setMap(null);
-          };
-        };
-      }, 100);
+                matchingPlaces.forEach((place: any) => {
+                  const placeLat = parseFloat(place.y);
+                  const placeLng = parseFloat(place.x);
+                  const distance = Math.sqrt(
+                    Math.pow(placeLat - location.lat, 2) +
+                    Math.pow(placeLng - location.lng, 2)
+                  );
 
-      // 확장 버튼 이벤트 리스너 등록
-      setTimeout(() => {
-        const expandBtn = document.getElementById(`expand-${overlayId}`);
-        if (expandBtn) {
-          expandBtn.onclick = () => {
-            if (globalOnPlaceClick) {
-              customOverlay.setMap(null);
-              globalOnPlaceClick(location);
+                  if (distance < minDistance && distance < 0.01) { // 약 1km 이내
+                    minDistance = distance;
+                    nearestPlace = place;
+                  }
+                });
+
+                if (minDistance < Infinity) {
+                  apiPlaceInfo = nearestPlace;
+                  markerPosition = {
+                    lat: parseFloat(nearestPlace.y),
+                    lng: parseFloat(nearestPlace.x)
+                  };
+                }
+              } else {
+                // 3순위: 모든 결과 중에서 좌표가 가장 가까운 것 찾기
+                let nearestPlace = data[0];
+                let minDistance = Infinity;
+
+                data.forEach((place: any) => {
+                  const placeLat = parseFloat(place.y);
+                  const placeLng = parseFloat(place.x);
+                  const distance = Math.sqrt(
+                    Math.pow(placeLat - location.lat, 2) +
+                    Math.pow(placeLng - location.lng, 2)
+                  );
+
+                  if (distance < minDistance && distance < 0.01) { // 약 1km 이내
+                    minDistance = distance;
+                    nearestPlace = place;
+                  }
+                });
+
+                if (minDistance < Infinity) {
+                  apiPlaceInfo = nearestPlace;
+                  markerPosition = {
+                    lat: parseFloat(nearestPlace.y),
+                    lng: parseFloat(nearestPlace.x)
+                  };
+                }
+              }
             }
+          }
+
+          // API에서 가져온 정보로 Location 객체 생성
+          const finalLocation: Location = apiPlaceInfo ? {
+            ...location,
+            lat: markerPosition.lat,
+            lng: markerPosition.lng,
+            name: apiPlaceInfo.place_name || location.name,
+            address: apiPlaceInfo.road_address_name || apiPlaceInfo.address_name || location.address,
+            category: apiPlaceInfo.category_name || location.category,
+            phone: apiPlaceInfo.phone || location.phone,
+            placeUrl: apiPlaceInfo.place_url || location.placeUrl,
+          } : location;
+
+          // 카테고리 확인하여 마커 이미지 결정
+          // 음식점 카테고리: FD6 또는 category_name에 "음식" 포함
+          const categoryName = finalLocation.category || '';
+          const categoryCode = apiPlaceInfo?.category_group_code || '';
+          const isRestaurant = categoryCode === 'FD6' ||
+            categoryName.includes('음식') ||
+            categoryName.includes('식당') ||
+            categoryName.includes('레스토랑') ||
+            categoryName.includes('카페');
+
+          // 마커 이미지 선택 (음식점: 빨간색, 그 외: 파란색)
+          const markerImageSrc = isRestaurant ? '/img/marker-red.png' : '/img/marker-blue.png';
+
+          // 이미지 로드하여 원본 비율 계산 후 마커 생성 (스타일 효과 적용)
+          const img = new Image();
+          img.onload = () => {
+            // 원본 이미지의 가로세로 비율 유지
+            const originalWidth = img.width;
+            const originalHeight = img.height;
+            const aspectRatio = originalWidth / originalHeight;
+
+            // 표시할 높이 설정 (적절한 크기로 조정)
+            const displayHeight = 40;
+            const displayWidth = displayHeight * aspectRatio;
+
+            // Canvas를 사용하여 이미지에 스타일 효과 적용
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            // 그림자 공간을 포함한 캔버스 크기
+            const shadowOffset = 2;
+            const shadowBlur = 6;
+            const padding = shadowBlur; // 그림자 공간만
+            canvas.width = displayWidth + shadowOffset + padding * 2;
+            canvas.height = displayHeight + shadowOffset + padding * 2;
+
+            // 그림자 효과 설정 (더 연하게)
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)'; // 0.4 -> 0.2로 더 연하게
+            ctx.shadowOffsetX = shadowOffset;
+            ctx.shadowOffsetY = shadowOffset;
+            ctx.shadowBlur = shadowBlur;
+
+            // 이미지 그리기 (그림자 효과 포함)
+            ctx.drawImage(
+              img,
+              padding,
+              padding,
+              displayWidth,
+              displayHeight
+            );
+
+            // Canvas를 data URL로 변환
+            const processedImageSrc = canvas.toDataURL('image/png');
+
+            // 커스텀 마커 이미지 생성 (원본 비율 유지, 스타일 효과 적용)
+            const markerImageSize = new window.kakao.maps.Size(
+              displayWidth + shadowOffset + padding * 2,
+              displayHeight + shadowOffset + padding * 2
+            );
+            const markerImageOption = {
+              offset: new window.kakao.maps.Point(
+                (displayWidth + shadowOffset + padding * 2) / 2,
+                displayHeight + shadowOffset + padding * 2
+              ) // 마커 이미지 중앙 정렬 (하단 기준)
+            };
+            const markerImage = new window.kakao.maps.MarkerImage(
+              processedImageSrc, // 처리된 이미지 사용
+              markerImageSize,
+              markerImageOption
+            );
+
+            // API에서 가져온 좌표로 마커 생성 (커스텀 이미지 사용)
+            const marker = new window.kakao.maps.Marker({
+              position: new window.kakao.maps.LatLng(markerPosition.lat, markerPosition.lng),
+              image: markerImage, // 커스텀 마커 이미지
+              map: map,
+            });
+            markersRef.current.push(marker);
+
+            // 마커 클릭 이벤트 - PlacePopup 열기
+            window.kakao.maps.event.addListener(marker, "click", () => {
+              if (globalOnPlaceClick) {
+                globalOnPlaceClick(finalLocation);
+              }
+            });
+
+            // Tooltip 생성 (API 정보 사용)
+            const tooltipContent = createMarkerTooltipContent(finalLocation);
+            const tooltipOverlay = new window.kakao.maps.CustomOverlay({
+              position: new window.kakao.maps.LatLng(markerPosition.lat, markerPosition.lng),
+              content: tooltipContent,
+              yAnchor: 1.15, // 마커 위에 표시 (간격 조정)
+              xAnchor: 0.5, // 중앙 정렬
+              zIndex: 1000,
+            });
+            tooltipOverlay.setMap(null); // 초기에는 숨김
+            markerTooltipsRef.current.set(marker, tooltipOverlay);
+
+            // 마커에 mouseover 이벤트 추가 (마커 전체 영역)
+            window.kakao.maps.event.addListener(marker, "mouseover", function () {
+              // 다른 tooltip 모두 숨김
+              markerTooltipsRef.current.forEach((tooltip) => {
+                if (tooltip && tooltip !== tooltipOverlay) {
+                  tooltip.setMap(null);
+                }
+              });
+
+              // 현재 tooltip 표시
+              if (tooltipOverlay) {
+                tooltipOverlay.setMap(map);
+              }
+            });
+
+            // 마커에 mouseout 이벤트 추가
+            window.kakao.maps.event.addListener(marker, "mouseout", function () {
+              // tooltip 숨김
+              if (tooltipOverlay) {
+                tooltipOverlay.setMap(null);
+              }
+            });
           };
-        };
-      }, 100);
+          img.src = markerImageSrc;
 
-      // 마커 클릭 이벤트 - 오버레이 토글 (카카오맵 API 방식)
-      window.kakao.maps.event.addListener(marker, "click", () => {
-        // 현재 오버레이가 열려있는지 확인
-        const isOpen = customOverlay.getMap() !== null;
+          // 마커의 hover 이벤트는 이미 위에서 처리되므로 추가 DOM 조작 불필요
+        });
+      };
 
-        if (isOpen) {
-          // 열려있으면 닫기
-          customOverlay.setMap(null);
-        } else {
-          // 닫혀있으면 다른 오버레이 모두 닫고 이 오버레이만 열기
-          closeAllOverlays();
-          customOverlay.setMap(map);
-        }
-      });
+      // 장소명으로 API 검색 후 마커 생성
+      searchPlaceAndCreateMarker();
     });
 
-    // 모든 마커가 보이도록 지도 범위 조정 (현재 위치도 포함)
-    if (route.length > 0) {
-      const bounds = new window.kakao.maps.LatLngBounds();
+    // 마커가 비동기로 생성되므로 bounds 조정은 마커 생성 후에 처리
+    // 각 마커 생성 시 bounds에 추가하도록 수정 필요 (현재는 기본 bounds 사용)
+    setTimeout(() => {
+      if (route.length > 0 && markersRef.current.length > 0) {
+        const bounds = new window.kakao.maps.LatLngBounds();
 
-      // 현재 위치가 있으면 포함
-      if (currentLocationRef.current) {
-        bounds.extend(new window.kakao.maps.LatLng(
-          currentLocationRef.current.lat,
-          currentLocationRef.current.lng
-        ));
+        // 현재 위치가 있으면 포함
+        if (currentLocationRef.current) {
+          bounds.extend(new window.kakao.maps.LatLng(
+            currentLocationRef.current.lat,
+            currentLocationRef.current.lng
+          ));
+        }
+
+        // 생성된 마커들의 위치를 bounds에 추가
+        markersRef.current.forEach((marker) => {
+          if (marker && marker.getPosition) {
+            bounds.extend(marker.getPosition());
+          }
+        });
+
+        if (markersRef.current.length > 0) {
+          map.setBounds(bounds);
+        }
       }
-
-      // route의 각 장소 포함
-      route.forEach((location) => {
-        bounds.extend(new window.kakao.maps.LatLng(location.lat, location.lng));
-      });
-      map.setBounds(bounds);
-    }
+    }, 1000); // 마커 생성 대기 시간
   };
 
   useEffect(() => {
@@ -349,12 +509,8 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         // 현재 위치 가져오기 및 지도에 표시
         setCurrentLocation(map);
 
-        // 지도 클릭 이벤트 - 주변에 실제 장소가 있을 때만 마커 표시
+        // 지도 클릭 이벤트
         window.kakao.maps.event.addListener(map, "click", function (mouseEvent: any) {
-          // route 기반 오버레이 닫기 (동시에 하나만 표시)
-          closeAllOverlays();
-          // route 기반 마커는 유지하고, 클릭으로 생성된 마커만 제거
-          clearClickMarker();
 
           const latlng = mouseEvent.latLng;
 
@@ -415,63 +571,24 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
               return;
             }
 
-            // 장소를 찾았으면 주소 검색 후 오버레이만 생성 (마커는 생성하지 않음)
+            // 장소를 찾았으면 PlacePopup 열기
             geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result: any, status: any) => {
               if (status === window.kakao.maps.services.Status.OK) {
                 const addr = result[0].road_address || result[0].address;
                 const addressName = addr?.road_address_name || addr?.address_name || "주소 검색 중...";
 
-                // 오버레이만 생성 (마커는 생성하지 않음)
-                const timestamp = Date.now();
                 const tempLocation: Location = {
-                  id: `click-${timestamp}`,
+                  id: `click-${Date.now()}`,
                   name: placeName || "장소",
                   address: addressName,
                   lat: latlng.getLat(),
                   lng: latlng.getLng(),
                 };
 
-                clickLocationRef.current = tempLocation;
-
-                const overlayId = `overlay-click-${timestamp}`;
-                const content = createOverlayContent(tempLocation, overlayId);
-
-                const customOverlay = new window.kakao.maps.CustomOverlay({
-                  position: latlng,
-                  content: content,
-                  // xAnchor, yAnchor 제거 - CSS로 위치 조정
-                });
-
-                customOverlay.setMap(map);
-                clickOverlayRef.current = customOverlay;
-
-                // 닫기 버튼 이벤트 리스너 등록
-                setTimeout(() => {
-                  const closeBtn = document.getElementById(`close-${overlayId}`);
-                  if (closeBtn) {
-                    closeBtn.onclick = () => {
-                      customOverlay.setMap(null);
-                      clickLocationRef.current = null;
-                    };
-                  };
-                }, 100);
-
-                // 확장 버튼 이벤트 리스너 등록
-                setTimeout(() => {
-                  const expandBtn = document.getElementById(`expand-${overlayId}`);
-                  if (expandBtn) {
-                    expandBtn.onclick = () => {
-                      if (globalOnPlaceClick) {
-                        customOverlay.setMap(null);
-                        const locationToShow = clickLocationRef.current;
-                        clickLocationRef.current = null;
-                        if (locationToShow) {
-                          globalOnPlaceClick(locationToShow);
-                        }
-                      }
-                    };
-                  };
-                }, 100);
+                // PlacePopup 열기
+                if (globalOnPlaceClick) {
+                  globalOnPlaceClick(tempLocation);
+                }
 
                 map.panTo(latlng);
               }
@@ -520,7 +637,6 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     if (!mapRef.current || !window.kakao?.maps) return;
 
     clearOverlays();
-    clearClickMarker();
     clearSearchMarkers();
     // 경로 제거
     if (routePolylineRef.current) {
@@ -569,6 +685,41 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       });
 
       searchMarkersRef.current.push(marker);
+
+      // Tooltip 생성
+      const tooltipContent = createMarkerTooltipContent(location);
+      const tooltipOverlay = new window.kakao.maps.CustomOverlay({
+        position: new window.kakao.maps.LatLng(location.lat, location.lng),
+        content: tooltipContent,
+        yAnchor: 1.15, // 마커 위에 표시 (간격 조정)
+        xAnchor: 0.5, // 중앙 정렬
+        zIndex: 1000,
+      });
+      tooltipOverlay.setMap(null); // 초기에는 숨김
+      markerTooltipsRef.current.set(marker, tooltipOverlay);
+
+      // 마커에 mouseover 이벤트 추가
+      window.kakao.maps.event.addListener(marker, "mouseover", function () {
+        // 다른 tooltip 모두 숨김
+        markerTooltipsRef.current.forEach((tooltip) => {
+          if (tooltip && tooltip !== tooltipOverlay) {
+            tooltip.setMap(null);
+          }
+        });
+
+        // 현재 tooltip 표시
+        if (tooltipOverlay) {
+          tooltipOverlay.setMap(map);
+        }
+      });
+
+      // 마커에 mouseout 이벤트 추가
+      window.kakao.maps.event.addListener(marker, "mouseout", function () {
+        // tooltip 숨김
+        if (tooltipOverlay) {
+          tooltipOverlay.setMap(null);
+        }
+      });
 
       // 마커 클릭 이벤트 등록
       window.kakao.maps.event.addListener(marker, 'click', () => {

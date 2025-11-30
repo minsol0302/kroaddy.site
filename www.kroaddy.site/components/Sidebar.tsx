@@ -117,7 +117,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
         >
           <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex items-center justify-center mb-1">
             <Image
-              src="/logo2.png"
+              src="/img/logo2.png"
               alt="Kroaddy logo"
               width={48}
               height={48}
