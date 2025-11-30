@@ -299,8 +299,16 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
       <div className="p-6 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0088FF] to-[#FF383C] flex items-center justify-center">
-              <span className="text-white">R</span>
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center relative overflow-hidden"
+              style={{
+                backgroundImage: 'url(/hanoks/danchung.jpg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            >
+              <div className="absolute inset-0 bg-black/20"></div>
+              <span className="text-white relative z-10">R</span>
             </div>
             <div>
               <h2 className="text-gray-900">{t('chatbot.title', uiLanguage)}</h2>
@@ -403,9 +411,15 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
           />
           <button
             type="submit"
-            className="px-6 py-3 bg-gradient-to-r from-[#0088FF] to-[#FF383C] text-white rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center"
+            className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center relative overflow-hidden"
+            style={{
+              backgroundImage: 'url(/hanoks/danchung.jpg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
           >
-            <Send className="w-5 h-5" />
+            <div className="absolute inset-0 bg-black/20"></div>
+            <Send className="w-5 h-5 relative z-10" />
           </button>
         </div>
       </form>
