@@ -17,12 +17,13 @@ interface KakaoMapProps {
   searchKeyword?: string;
   onPlaceClick?: (place: Location) => void;
   resetKey?: number; // 초기화를 위한 키
+  drawRouteKey?: number; // 경로를 그릴지 말지 제어하는 키
 }
 
 // 전역으로 onPlaceClick 저장 (이벤트 핸들러에서 접근하기 위해)
 let globalOnPlaceClick: ((place: Location) => void) | undefined = undefined;
 
-export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick, resetKey = 0 }: KakaoMapProps) {
+export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick, resetKey = 0, drawRouteKey = 0 }: KakaoMapProps) {
   const mapRef = useRef<any>(null);
   const customOverlaysRef = useRef<any[]>([]);
   const markersRef = useRef<any[]>([]);
@@ -32,6 +33,13 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   const clickOverlayRef = useRef<any>(null);
   // 키워드 검색으로 생성된 마커 (route와 별도 관리)
   const searchMarkersRef = useRef<any[]>([]);
+  // 현재 위치 마커 및 원형 오버레이
+  const currentLocationMarkerRef = useRef<any>(null);
+  const currentLocationCircleRef = useRef<any>(null);
+  // 현재 위치 좌표 저장
+  const currentLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+  // 경로 Polyline 저장
+  const routePolylineRef = useRef<any>(null);
 
   const KAKAO_MAP_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY;
 
@@ -83,6 +91,157 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       if (marker) marker.setMap(null);
     });
     searchMarkersRef.current = [];
+  };
+
+  // 현재 위치 마커 제거
+  const clearCurrentLocationMarker = () => {
+    if (currentLocationMarkerRef.current) {
+      // CustomOverlay인 경우
+      if (currentLocationMarkerRef.current.setMap) {
+        currentLocationMarkerRef.current.setMap(null);
+      }
+      currentLocationMarkerRef.current = null;
+    }
+    if (currentLocationCircleRef.current) {
+      if (currentLocationCircleRef.current.setMap) {
+        currentLocationCircleRef.current.setMap(null);
+      }
+      currentLocationCircleRef.current = null;
+    }
+  };
+
+  // 경로 그리기 (현재 위치에서 route의 장소들까지)
+  const drawRoute = (map: any) => {
+    // 기존 경로 제거
+    if (routePolylineRef.current) {
+      routePolylineRef.current.setMap(null);
+      routePolylineRef.current = null;
+    }
+
+    // 현재 위치와 route가 모두 있어야 경로를 그릴 수 있음
+    if (!currentLocationRef.current || !route || route.length === 0) {
+      return;
+    }
+
+    // route를 order 순서대로 정렬 (order가 없으면 기존 순서 유지)
+    const sortedRoute = [...route].sort((a, b) => {
+      const orderA = a.order !== undefined ? a.order : Infinity;
+      const orderB = b.order !== undefined ? b.order : Infinity;
+      return orderA - orderB;
+    });
+
+    // 경로 좌표 배열 생성 (현재 위치 -> route의 각 장소)
+    const path: any[] = [];
+
+    // 현재 위치를 시작점으로 추가
+    path.push(new window.kakao.maps.LatLng(
+      currentLocationRef.current.lat,
+      currentLocationRef.current.lng
+    ));
+
+    // 정렬된 route의 각 장소를 순서대로 추가
+    sortedRoute.forEach((location) => {
+      path.push(new window.kakao.maps.LatLng(location.lat, location.lng));
+    });
+
+    // Polyline으로 경로 그리기
+    const polyline = new window.kakao.maps.Polyline({
+      path: path,
+      strokeWeight: 5,
+      strokeColor: '#4285F4',
+      strokeOpacity: 0.7,
+      strokeStyle: 'solid',
+    });
+
+    polyline.setMap(map);
+    routePolylineRef.current = polyline;
+
+    // 지도 범위를 현재 위치와 모든 장소를 포함하도록 조정
+    const bounds = new window.kakao.maps.LatLngBounds();
+    bounds.extend(new window.kakao.maps.LatLng(
+      currentLocationRef.current.lat,
+      currentLocationRef.current.lng
+    ));
+    sortedRoute.forEach((location) => {
+      bounds.extend(new window.kakao.maps.LatLng(location.lat, location.lng));
+    });
+    map.setBounds(bounds);
+  };
+
+  // 현재 위치 가져오기 및 지도에 표시
+  const setCurrentLocation = (map: any) => {
+    if (!navigator.geolocation) {
+      console.warn('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const currentPosition = new window.kakao.maps.LatLng(lat, lng);
+
+        // 현재 위치 좌표 저장
+        currentLocationRef.current = { lat, lng };
+
+        // 지도 중심을 현재 위치로 이동
+        map.setCenter(currentPosition);
+        map.setLevel(3); // 좀 더 가까운 레벨로 설정
+
+        // 기존 현재 위치 마커 제거
+        clearCurrentLocationMarker();
+
+        // 현재 위치에 원형 오버레이 추가 (반경 표시)
+        const circle = new window.kakao.maps.Circle({
+          center: currentPosition,
+          radius: 50, // 50미터 반경
+          strokeWeight: 2,
+          strokeColor: '#4285F4',
+          strokeOpacity: 0.6,
+          fillColor: '#4285F4',
+          fillOpacity: 0.15,
+        });
+        circle.setMap(map);
+        currentLocationCircleRef.current = circle;
+
+        // 현재 위치 마커 생성 (SVG로 파란색 원형 마커 생성)
+        const markerContent = `
+          <div style="
+            width: 20px;
+            height: 20px;
+            background-color: #4285F4;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          "></div>
+        `;
+
+        const customOverlay = new window.kakao.maps.CustomOverlay({
+          position: currentPosition,
+          content: markerContent,
+          yAnchor: 0.5,
+          xAnchor: 0.5,
+        });
+        customOverlay.setMap(map);
+
+        // 마커 참조 저장 (CustomOverlay를 마커처럼 사용)
+        currentLocationMarkerRef.current = customOverlay;
+
+        // 경로 그리기 (route가 있으면)
+        if (route && route.length > 0) {
+          drawRoute(map);
+        }
+      },
+      (error) => {
+        console.warn('Error getting current location:', error);
+        // 위치를 가져오지 못하면 기본 위치(서울시청) 사용
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0,
+      }
+    );
   };
 
   // route에 따라 마커와 오버레이 생성 (오버레이는 숨김 상태)
@@ -151,9 +310,19 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       });
     });
 
-    // 모든 마커가 보이도록 지도 범위 조정
+    // 모든 마커가 보이도록 지도 범위 조정 (현재 위치도 포함)
     if (route.length > 0) {
       const bounds = new window.kakao.maps.LatLngBounds();
+
+      // 현재 위치가 있으면 포함
+      if (currentLocationRef.current) {
+        bounds.extend(new window.kakao.maps.LatLng(
+          currentLocationRef.current.lat,
+          currentLocationRef.current.lng
+        ));
+      }
+
+      // route의 각 장소 포함
       route.forEach((location) => {
         bounds.extend(new window.kakao.maps.LatLng(location.lat, location.lng));
       });
@@ -172,10 +341,13 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         if (!container) return;
 
         const map = new window.kakao.maps.Map(container, {
-          center: new window.kakao.maps.LatLng(37.5665, 126.9780),
+          center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 기본값 (서울시청)
           level: 5,
         });
         mapRef.current = map;
+
+        // 현재 위치 가져오기 및 지도에 표시
+        setCurrentLocation(map);
 
         // 지도 클릭 이벤트 - 주변에 실제 장소가 있을 때만 마커 표시
         window.kakao.maps.event.addListener(map, "click", function (mouseEvent: any) {
@@ -325,7 +497,7 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     }
   }, [KAKAO_MAP_API_KEY]);
 
-  // route 변경 시 오버레이 업데이트
+  // route 변경 시 오버레이 업데이트 (경로는 자동으로 그리지 않음)
   useEffect(() => {
     if (!mapRef.current || !window.kakao?.maps) return;
 
@@ -333,6 +505,13 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
 
     if (route && route.length > 0) {
       createOverlays(mapRef.current);
+      // 경로는 "응" 입력 시에만 그리도록 함 (자동으로 그리지 않음)
+    } else {
+      // route가 비어있으면 경로 제거
+      if (routePolylineRef.current) {
+        routePolylineRef.current.setMap(null);
+        routePolylineRef.current = null;
+      }
     }
   }, [route]);
 
@@ -343,7 +522,24 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     clearOverlays();
     clearClickMarker();
     clearSearchMarkers();
+    // 경로 제거
+    if (routePolylineRef.current) {
+      routePolylineRef.current.setMap(null);
+      routePolylineRef.current = null;
+    }
+    // 현재 위치는 유지 (초기화하지 않음)
   }, [resetKey]);
+
+  // drawRouteKey 변경 시 경로 그리기 ("응" 입력 시에만 경로를 그리도록 함)
+  useEffect(() => {
+    if (!mapRef.current || !window.kakao?.maps) return;
+    if (drawRouteKey === 0) return; // 초기값이면 경로를 그리지 않음
+
+    // 현재 위치와 route가 모두 있으면 경로 그리기
+    if (currentLocationRef.current && route && route.length > 0) {
+      drawRoute(mapRef.current);
+    }
+  }, [drawRouteKey, route]);
 
   // 키워드 검색 처리 (카카오맵 API 기본 방식)
   useEffect(() => {
