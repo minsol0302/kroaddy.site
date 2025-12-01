@@ -463,7 +463,7 @@ export default function MyPage() {
                     <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-gray-200/50 shadow-sm">
                         <User className="w-10 h-10 text-gray-600" />
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900 mb-1">asd · 40대</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-1">pjjw1233@gmail.com</h2>
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${isAuthenticated
                         ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200/50'
                         : 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-yellow-200/50'
