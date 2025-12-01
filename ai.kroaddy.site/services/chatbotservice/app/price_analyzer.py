@@ -23,7 +23,7 @@ else:
 class PriceAnalyzerChatbot:
     """가격 분석 챗봇 클래스"""
     
-    def __init__(self, model: str = "gpt-3.5-turbo", temperature: float = 0.7, max_tokens: int = 1000):
+    def __init__(self, model: str = "gpt-4o-mini", temperature: float = 0.7, max_tokens: int = 2000):
         """
         챗봇 초기화
         
@@ -35,23 +35,68 @@ class PriceAnalyzerChatbot:
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.system_message = "너는 친절한 한국어 챗봇이야. 사용자의 질문에 정확하고 도움이 되는 답변을 제공해줘."
+        self.system_message = "너는 친절한 한국을 여행 온 외국인 맞춤형 한국어 챗봇이야. 사용자의 질문에 정확하고 도움이 되는 답변을 제공해줘."
         
-    def chat(self, user_message: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> str:
+    def chat(self, user_message: str, conversation_history: Optional[List[Dict[str, str]]] = None, user_profile: Optional[Dict[str, str]] = None, context_info: Optional[Dict] = None) -> str:
         """
         챗봇과 대화
         
         Args:
             user_message: 사용자 메시지
             conversation_history: 대화 이력 (선택사항)
+            user_profile: 사용자 프로필 정보 (선택사항)
+            context_info: 현재 위치 및 날씨 정보 (선택사항)
         
         Returns:
             챗봇의 응답 메시지
         """
         try:
+            # 시스템 메시지 구성 (사용자 프로필, 위치, 날씨 정보 포함)
+            system_message = self.system_message
+            context_parts = []
+            
+            # 사용자 프로필 정보 추가
+            if user_profile:
+                profile_parts = []
+                
+                if user_profile.get('gender'):
+                    profile_parts.append(f"성별: {user_profile['gender']}")
+                
+                if user_profile.get('age'):
+                    profile_parts.append(f"생년월일: {user_profile['age']}")
+                
+                if user_profile.get('nationality'):
+                    profile_parts.append(f"국적/거주지: {user_profile['nationality']}")
+                
+                if user_profile.get('religion'):
+                    profile_parts.append(f"종교: {user_profile['religion']}")
+                
+                if user_profile.get('dietary'):
+                    profile_parts.append(f"식이 제한: {user_profile['dietary']}")
+                
+                if profile_parts:
+                    context_parts.append("사용자 정보:")
+                    context_parts.extend(profile_parts)
+            
+            # 현재 위치 정보 추가
+            if context_info and context_info.get('location'):
+                location = context_info['location']
+                context_parts.append(f"\n현재 위치: 위도 {location.get('lat', 'N/A')}, 경도 {location.get('lng', 'N/A')}")
+            
+            # 날씨 정보 추가
+            if context_info and context_info.get('weather'):
+                weather = context_info['weather']
+                weather_text = f"현재 날씨: {weather.get('city', '알 수 없음')} 지역, {weather.get('temp', 'N/A')}°C, {weather.get('description', '')}"
+                context_parts.append(weather_text)
+            
+            # 컨텍스트 정보가 있으면 시스템 메시지에 추가
+            if context_parts:
+                context_text = "\n".join(context_parts)
+                system_message = f"{self.system_message}\n\n{context_text}\n\n위 정보들을 종합적으로 고려하여 개인화되고 상황에 맞는 답변을 제공해줘."
+            
             # 메시지 구성
             messages = [
-                {"role": "system", "content": self.system_message}
+                {"role": "system", "content": system_message}
             ]
             
             # 대화 이력이 있으면 추가
@@ -60,14 +105,18 @@ class PriceAnalyzerChatbot:
                 if isinstance(conversation_history, list):
                     for msg in conversation_history:
                         if isinstance(msg, dict) and "role" in msg and "content" in msg:
-                            messages.append({
-                                "role": msg["role"],
-                                "content": str(msg["content"])
-                            })
+                            # role이 'system'이 아닌 경우만 추가 (system 메시지는 이미 있음)
+                            if msg["role"] != "system":
+                                messages.append({
+                                    "role": msg["role"],
+                                    "content": str(msg["content"])
+                                })
                         else:
                             logger.warning(f"잘못된 대화 이력 형식: {msg}")
                 else:
                     logger.warning(f"대화 이력이 리스트가 아닙니다: {type(conversation_history)}")
+            
+            logger.info(f"전송할 메시지 개수: {len(messages)}")
             
             # 사용자 메시지 추가
             messages.append({"role": "user", "content": user_message})
@@ -88,14 +137,32 @@ class PriceAnalyzerChatbot:
             
             # 응답 추출
             bot_response = response.choices[0].message.content
-            logger.info(f"사용자: {user_message}")
-            logger.info(f"챗봇: {bot_response}")
+            
+            # 응답이 잘렸는지 확인
+            if response.choices[0].finish_reason == "length":
+                logger.warning(f"응답이 max_tokens({self.max_tokens})로 인해 잘렸습니다.")
+                bot_response += "\n\n(응답이 길어서 일부가 잘렸을 수 있습니다.)"
+            
+            logger.info(f"사용자: {user_message[:100]}...")
+            logger.info(f"챗봇 응답 길이: {len(bot_response)} 문자")
+            logger.info(f"응답 완료 이유: {response.choices[0].finish_reason}")
             
             return bot_response
             
         except Exception as e:
-            logger.error(f"챗봇 호출 실패: {e}")
-            return f"죄송합니다. 오류가 발생했습니다: {str(e)}"
+            error_str = str(e)
+            logger.error(f"챗봇 호출 실패: {e}", exc_info=True)
+            
+            # OpenAI API 키 오류 처리
+            if "invalid_api_key" in error_str.lower() or "incorrect api key" in error_str.lower() or "401" in error_str:
+                return "죄송합니다. OpenAI API 키 설정에 문제가 있습니다. 관리자에게 문의해주세요."
+            
+            # Rate limit 오류 처리
+            if "rate limit" in error_str.lower() or "429" in error_str:
+                return "죄송합니다. 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
+            
+            # 기타 오류는 간단한 메시지로
+            return "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
     
     def analyze_price(self, product_name: str, price: Optional[float] = None, context: Optional[str] = None) -> str:
         """

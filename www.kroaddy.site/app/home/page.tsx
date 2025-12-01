@@ -26,6 +26,8 @@ export default function Home() {
   const [uiLanguage, setUiLanguage] = useState<LanguageCode>(getCurrentLanguage());
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRefsRef = useRef<NodeJS.Timeout[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [weatherInfo, setWeatherInfo] = useState<{ temp: number; description: string; city: string } | null>(null);
 
   // 언어 변경 감지
   useEffect(() => {
@@ -37,6 +39,17 @@ export default function Home() {
     return () => {
       window.removeEventListener('languageChanged', handleLanguageChange as EventListener);
     };
+  }, []);
+
+  // 위치 및 날씨 정보 업데이트 핸들러
+  const handleLocationUpdate = useCallback((location: { lat: number; lng: number }) => {
+    setCurrentLocation(location);
+    console.log('위치 정보 업데이트:', location);
+  }, []);
+
+  const handleWeatherUpdate = useCallback((weather: { temp: number; description: string; city: string }) => {
+    setWeatherInfo(weather);
+    console.log('날씨 정보 업데이트:', weather);
   }, []);
 
   // cleanup: 컴포넌트 언마운트 시 타임아웃 및 AbortController 정리
@@ -83,8 +96,8 @@ export default function Home() {
     const newMessages = [...messages, { role: 'user' as const, content: message }];
     setMessages(newMessages);
 
-    // '근처' 키워드 처리
-    if (message.includes('근처') || message.toLowerCase().includes('nearby')) {
+    // '있을까?' 키워드 처리
+    if (message.includes('있을까?') || message.toLowerCase().includes('nearby')) {
       // 작성중 메시지 추가
       const typingMessage = createTypingMessage();
       setMessages([...newMessages, typingMessage]);
@@ -223,9 +236,9 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         // 작성중 메시지를 실제 답변으로 교체
         setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
 
-        // '근처' 키워드에 매핑된 장소들을 route로 설정
-        if (keywordPlaceMap['근처']) {
-          setRoute(keywordPlaceMap['근처']);
+        // '있을까?' 키워드에 매핑된 장소들을 route로 설정
+        if (keywordPlaceMap['있을까?']) {
+          setRoute(keywordPlaceMap['있을까?']);
           setSearchKeyword(''); // 기존 검색 로직과 충돌 방지
         }
         setScreen('chatResponse');
@@ -257,8 +270,8 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
       return;
     }
 
-    // '추천' 키워드 처리
-    if (message.includes('추천') || message.toLowerCase().includes('recommend')) {
+    // '밥집집' 키워드 처리
+    if (message.includes('밥집') || message.toLowerCase().includes('recommend')) {
       // 작성중 메시지 추가
       const typingMessage = createTypingMessage();
       setMessages([...newMessages, typingMessage]);
@@ -270,8 +283,8 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
 
         // 기존 route에서 특정 장소 제거하고 새 장소 추가
-        if (keywordPlaceMap['근처']) {
-          const basePlaces = keywordPlaceMap['근처'];
+        if (keywordPlaceMap['있을까?']) {
+          const basePlaces = keywordPlaceMap['있을까?'];
 
           // 제거할 장소 ID 목록
           const removeIds = ['place5', 'place6', 'place7']; // 비건 인사 채식당, 오세계향, 카페 수달
@@ -407,6 +420,36 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
       // OpenAI API 호출
       const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:9000/chatbot';
 
+      // Onboarding 데이터 가져오기
+      let userProfile = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const onboardingDataStr = localStorage.getItem('onboardingData');
+          if (onboardingDataStr) {
+            userProfile = JSON.parse(onboardingDataStr);
+            console.log('사용자 프로필 정보:', userProfile);
+          }
+        } catch (e) {
+          console.warn('Onboarding 데이터 파싱 실패:', e);
+        }
+      }
+
+      // 현재 위치 및 날씨 정보 준비
+      const contextInfo: {
+        location?: { lat: number; lng: number };
+        weather?: { temp: number; description: string; city: string };
+      } = {};
+
+      if (currentLocation) {
+        contextInfo.location = currentLocation;
+      }
+
+      if (weatherInfo) {
+        contextInfo.weather = weatherInfo;
+      }
+
+      console.log('컨텍스트 정보 (위치/날씨):', contextInfo);
+
       // 대화 이력을 API 형식으로 변환 (현재 메시지 제외)
       const conversationHistory = messages.map((msg) => ({
         role: msg.role,
@@ -424,26 +467,73 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: message,
-          conversation_history: conversationHistory
+          conversation_history: conversationHistory,
+          user_profile: userProfile, // Onboarding 데이터
+          context_info: Object.keys(contextInfo).length > 0 ? contextInfo : undefined // 위치/날씨 정보
         }),
         signal: controller.signal
       })
-        .then(res => {
+        .then(async res => {
           // 타임아웃 제거
           timeoutRefsRef.current = timeoutRefsRef.current.filter(id => id !== timeoutId);
           clearTimeout(timeoutId);
 
           if (!res.ok) {
+            const errorText = await res.text();
+            console.error('HTTP 에러 응답:', res.status, errorText);
             throw new Error(`HTTP error! status: ${res.status}`);
           }
-          return res.json();
+
+          // 응답 본문을 텍스트로 먼저 읽어서 확인
+          const responseText = await res.text();
+          console.log('응답 원본:', responseText);
+
+          try {
+            const data = JSON.parse(responseText);
+            console.log('파싱된 응답 데이터:', data);
+            return data;
+          } catch (parseError) {
+            console.error('JSON 파싱 실패:', parseError, '응답 텍스트:', responseText);
+            throw new Error('응답 파싱 실패');
+          }
         })
         .then(data => {
+          console.log('응답 데이터:', data);
+
+          // 응답 구조 확인 및 처리
+          let responseContent = null;
+
+          if (data && typeof data === 'object') {
+            // data.response가 있는 경우
+            if (data.response && typeof data.response === 'string') {
+              responseContent = data.response;
+            }
+            // data.message가 있는 경우
+            else if (data.message && typeof data.message === 'string') {
+              responseContent = data.message;
+            }
+            // 중첩된 response 객체가 있는 경우
+            else if (data.response && typeof data.response === 'object' && data.response.response) {
+              responseContent = data.response.response;
+            }
+          }
+
+          // 응답을 찾지 못한 경우
+          if (!responseContent) {
+            console.error('응답 데이터 구조 오류:', data);
+            responseContent = uiLanguage === 'ko'
+              ? '응답을 받을 수 없습니다.'
+              : 'Unable to receive response.';
+          }
+
+          console.log('최종 응답 내용:', responseContent);
+
           // 작성중 메시지를 실제 답변으로 교체
-          const responseContent = data.response || data.message || (uiLanguage === 'ko'
-            ? '응답을 받을 수 없습니다.'
-            : 'Unable to receive response.');
-          setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
+          setMessages(prev => {
+            const updated = replaceTypingMessage(prev, typingMessage, responseContent);
+            console.log('메시지 업데이트 완료:', updated);
+            return updated;
+          });
         })
         .catch(error => {
           // 타임아웃 제거
@@ -453,6 +543,7 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
           // AbortError는 사용자가 취소한 것이므로 로그만 출력
           if (error.name !== 'AbortError') {
             console.error('챗봇 API 호출 실패:', error);
+            console.error('에러 상세:', error.message, error.stack);
           }
 
           // 작성중 메시지를 에러 메시지로 교체
@@ -507,7 +598,10 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
 
       {/* 날씨 위젯 - 오른쪽 상단 */}
       <div className="absolute top-4 right-4 z-50">
-        <WeatherWidget />
+        <WeatherWidget
+          onWeatherUpdate={handleWeatherUpdate}
+          onLocationUpdate={handleLocationUpdate}
+        />
       </div>
 
       {/* 챗봇과 지도 영역 (리사이저블) */}
@@ -552,14 +646,27 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
           {/* 지도 */}
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <div className="h-full">
-              <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} resetKey={mapResetKey} drawRouteKey={drawRouteKey} />
+              <KakaoMap
+                route={route}
+                searchKeyword={searchKeyword}
+                onPlaceClick={handlePlaceClick}
+                resetKey={mapResetKey}
+                drawRouteKey={drawRouteKey}
+                onLocationUpdate={handleLocationUpdate}
+              />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       ) : (
         /* 지도만 표시 (챗봇 숨김) */
         <div className="flex-1 h-full">
-          <KakaoMap route={route} searchKeyword={searchKeyword} onPlaceClick={handlePlaceClick} resetKey={mapResetKey} />
+          <KakaoMap
+            route={route}
+            searchKeyword={searchKeyword}
+            onPlaceClick={handlePlaceClick}
+            resetKey={mapResetKey}
+            onLocationUpdate={handleLocationUpdate}
+          />
         </div>
       )}
     </div>
