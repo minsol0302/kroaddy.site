@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import Script from "next/script";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createMarkerTooltipContent } from "./MarkerTooltip";
-import { Location } from "../lib/types";
+import { Location, LanguageCode } from "../lib/types";
 import { keywordPlaceMap } from "../lib/keywordPlaces";
 import { searchContentId, fetchTourImages } from "../lib/tourApi";
+import { getCurrentLanguage, t } from "../lib/i18n";
 
 declare global {
   interface Window {
@@ -24,9 +24,38 @@ interface KakaoMapProps {
 // 전역으로 onPlaceClick 저장 (이벤트 핸들러에서 접근하기 위해)
 let globalOnPlaceClick: ((place: Location) => void) | undefined = undefined;
 
+// LanguageCode를 카카오 지도 언어 코드로 변환
+// 카카오 지도는 ko, en, ja, zh만 지원합니다
+const getKakaoMapLang = (langCode: LanguageCode): string => {
+  const langMap: Record<LanguageCode, string> = {
+    'ko': 'ko',
+    'en': 'en',
+    'ja': 'ja',
+    'zh-CN': 'zh',  // 중국어 간체는 zh로 통일
+    'zh-TW': 'zh',  // 중국어 번체도 zh로 통일
+    'fr': 'en',     // 지원하지 않는 언어는 영어로 폴백
+    'de': 'en',
+    'vi': 'en',
+    'id': 'en',
+    'th': 'en',
+    'ar': 'en',
+    'mn': 'en',
+    'pt': 'en',
+    'es': 'en',
+    'it': 'en',
+    'uz': 'en',
+    'km': 'en',
+    'ne': 'en',
+  };
+  return langMap[langCode] || 'en';
+};
+
 
 export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick, resetKey = 0, drawRouteKey = 0 }: KakaoMapProps) {
   const mapRef = useRef<any>(null);
+  const [mapKey, setMapKey] = useState(0); // 지도 재초기화를 위한 키
+  const [scriptLoaded, setScriptLoaded] = useState(false); // Script 로드 상태
+  const scriptRef = useRef<HTMLScriptElement | null>(null);
   const markersRef = useRef<any[]>([]);
   // 마커 hover tooltip 저장
   const markerTooltipsRef = useRef<Map<any, any>>(new Map());
@@ -41,6 +70,33 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   const routePolylineRef = useRef<any>(null);
   // 마커의 실제 위치 저장 (location.id -> 실제 좌표)
   const markerPositionsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
+
+  // 현재 언어 상태
+  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(getCurrentLanguage());
+  // 경로확인 활성화 상태
+  const [isRouteCheckActive, setIsRouteCheckActive] = useState(false);
+  // 이미지 표시 상태
+  const [showStreetView, setShowStreetView] = useState(false);
+  // 클릭한 장소 정보 (이미지 표시용)
+  const [selectedPlaceForImage, setSelectedPlaceForImage] = useState<Location | null>(null);
+
+  // 장소별 이미지 매핑
+  const placeImageMap: Record<string, string> = {
+    '광장시장': '/place/kwangjang.jpg',
+    '경복궁': '/place/kyungbok.png',
+    '청계천': '/place/chunjpg.jpg',
+    '명동대성당': '/place/myungdongsungjpg.jpg',
+    '꽃밥에 피다 북촌 친환경 그로서란트': '/place/kotbab.jpg',
+    '비건 인사 채식당': '/place/ddp.jpg',
+    '채식요리전문점 오세계향': '/place/ddp.jpg',
+    '카페 수달': '/place/ddp.jpg',
+    '청수당 베이커리': '/place/sudang.jpg',
+    '서울 역사 박물관': '/place/ddp.jpg',
+    '대한민국 역사 박물관': '/place/ddp.jpg',
+    '국립 고궁 박물관': '/place/ddp.jpg',
+    '국립 민속 박물관': '/place/ddp.jpg',
+    '국립 중앙 박물관': '/place/ddp.jpg',
+  };
 
   const KAKAO_MAP_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY;
 
@@ -81,8 +137,20 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
 
   // onPlaceClick을 전역에 저장 (이벤트 핸들러에서 접근하기 위해)
   useEffect(() => {
-    globalOnPlaceClick = onPlaceClick;
-  }, [onPlaceClick]);
+    // 경로확인이 활성화된 상태에서 장소를 클릭하면 이미지 표시
+    globalOnPlaceClick = (place: Location) => {
+      if (isRouteCheckActive) {
+        // 활성화된 상태에서 장소 클릭 시 해당 장소의 이미지 표시
+        setSelectedPlaceForImage(place);
+        setShowStreetView(true);
+      } else {
+        // 비활성화 상태에서는 기존 동작 (PlacePopup 열기)
+        if (onPlaceClick) {
+          onPlaceClick(place);
+        }
+      }
+    };
+  }, [onPlaceClick, isRouteCheckActive]);
 
   // 기존 마커와 tooltip 제거 (route 기반만)
   const clearOverlays = () => {
@@ -587,8 +655,25 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     }, 1000); // 마커 생성 대기 시간
   };
 
+  // 초기 Script 로드
   useEffect(() => {
     if (!KAKAO_MAP_API_KEY) return;
+
+    const kakaoLang = getKakaoMapLang(currentLanguage);
+    loadKakaoMapScript(kakaoLang);
+
+    return () => {
+      // 컴포넌트 언마운트 시 Script 제거
+      if (scriptRef.current) {
+        document.head.removeChild(scriptRef.current);
+        scriptRef.current = null;
+      }
+    };
+  }, []); // 초기 마운트 시에만 실행
+
+  // Script 로드 후 지도 초기화
+  useEffect(() => {
+    if (!KAKAO_MAP_API_KEY || !scriptLoaded) return;
 
     const initMap = () => {
       if (!window.kakao?.maps) return;
@@ -703,13 +788,241 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       });
     };
 
-    if (window.kakao?.maps?.load) initMap();
-    else {
+    if (window.kakao?.maps?.load) {
+      initMap();
+    } else {
       const handler = () => initMap();
       window.addEventListener("kakaoMapLoaded", handler);
       return () => window.removeEventListener("kakaoMapLoaded", handler);
     }
+  }, [scriptLoaded, route, KAKAO_MAP_API_KEY]);
+
+  // Script 동적 로드 함수
+  const loadKakaoMapScript = useCallback((lang: string) => {
+    console.log('카카오 지도 Script 로드 시작, 언어:', lang);
+
+    // 기존 Script 모두 제거 (모든 카카오 지도 관련 Script 찾기)
+    const existingScripts = document.querySelectorAll('script[src*="dapi.kakao.com"]');
+    existingScripts.forEach(script => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    });
+    scriptRef.current = null;
+
+    // window.kakao 객체 완전히 제거
+    if (window.kakao) {
+      try {
+        delete (window as any).kakao;
+      } catch (e) {
+        (window as any).kakao = undefined;
+      }
+    }
+
+    // scriptLoaded 상태 초기화
+    setScriptLoaded(false);
+
+    // 지도 컨테이너 비우기
+    const container = document.getElementById("map");
+    if (container) {
+      container.innerHTML = '';
+    }
+
+    // 새 Script 생성
+    const script = document.createElement('script');
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_API_KEY}&autoload=false&libraries=services&lang=${lang}`;
+    script.async = true;
+    script.onload = () => {
+      console.log('카카오 지도 Script 로드 완료, 언어:', lang);
+      setScriptLoaded(true);
+      setTimeout(() => {
+        window.dispatchEvent(new Event("kakaoMapLoaded"));
+      }, 200);
+    };
+    script.onerror = () => {
+      console.error('카카오 지도 SDK 로드 실패');
+      setScriptLoaded(false);
+    };
+    document.head.appendChild(script);
+    scriptRef.current = script;
   }, [KAKAO_MAP_API_KEY]);
+
+  // 언어 변경 감지 및 지도 언어 업데이트
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      const newLang = getCurrentLanguage();
+      const kakaoLang = getKakaoMapLang(newLang);
+
+      console.log('언어 변경 감지:', newLang, '-> 카카오 지도 언어:', kakaoLang);
+      console.log('handleLanguageChange 함수 실행 중...');
+
+      setCurrentLanguage(newLang);
+      console.log('setCurrentLanguage 호출 완료');
+
+      // 지도 상태 저장 (지도가 초기화된 경우)
+      console.log('지도 상태 저장 시작...');
+      let savedCenter: any = null;
+      let savedLevel = 5;
+
+      if (mapRef.current && window.kakao?.maps) {
+        try {
+          savedCenter = mapRef.current.getCenter();
+          savedLevel = mapRef.current.getLevel();
+        } catch (e) {
+          console.warn('지도 상태 저장 실패, 기본값 사용:', e);
+        }
+      }
+
+      // 기본값 설정 (지도가 초기화되지 않은 경우)
+      if (!savedCenter && window.kakao?.maps) {
+        savedCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
+      } else if (!savedCenter) {
+        // window.kakao가 없는 경우, 나중에 설정
+        savedCenter = { lat: 37.5665, lng: 126.9780 };
+      }
+
+      console.log('언어 변경 처리 시작, KAKAO_MAP_API_KEY:', KAKAO_MAP_API_KEY ? '존재' : '없음');
+
+      try {
+        // 기존 지도 제거
+        if (mapRef.current) {
+          console.log('기존 지도 제거 중...');
+          // 모든 마커 제거
+          markersRef.current.forEach(marker => {
+            try {
+              marker.setMap(null);
+            } catch (e) {
+              // 무시
+            }
+          });
+          markersRef.current = [];
+          searchMarkersRef.current.forEach(marker => {
+            try {
+              marker.setMap(null);
+            } catch (e) {
+              // 무시
+            }
+          });
+          searchMarkersRef.current = [];
+          // 현재 위치 마커 제거
+          if (currentLocationMarkerRef.current) {
+            try {
+              currentLocationMarkerRef.current.setMap(null);
+            } catch (e) {
+              // 무시
+            }
+            currentLocationMarkerRef.current = null;
+          }
+          if (currentLocationCircleRef.current) {
+            try {
+              currentLocationCircleRef.current.setMap(null);
+            } catch (e) {
+              // 무시
+            }
+            currentLocationCircleRef.current = null;
+          }
+          // 경로 제거
+          if (routePolylineRef.current) {
+            try {
+              routePolylineRef.current.setMap(null);
+            } catch (e) {
+              // 무시
+            }
+            routePolylineRef.current = null;
+          }
+        }
+
+        mapRef.current = null;
+
+        // 지도 컨테이너 완전히 비우기
+        const container = document.getElementById("map");
+        if (container) {
+          container.innerHTML = '';
+          console.log('지도 컨테이너 비움 완료');
+        }
+
+        // Script를 새 언어로 다시 로드
+        console.log('loadKakaoMapScript 호출 전, 언어:', kakaoLang);
+        if (!KAKAO_MAP_API_KEY) {
+          console.error('KAKAO_MAP_API_KEY가 없습니다!');
+          return;
+        }
+        loadKakaoMapScript(kakaoLang);
+        console.log('loadKakaoMapScript 호출 완료');
+
+        // Script 로드 완료 후 지도 재초기화를 위해 상태 저장
+        const finalCenter = savedCenter;
+        const finalLevel = savedLevel;
+
+        // Script 로드 완료 이벤트 리스너
+        const reinitHandler = () => {
+          setTimeout(() => {
+            if (window.kakao?.maps) {
+              const mapContainer = document.getElementById("map");
+              if (mapContainer) {
+                window.kakao.maps.load(() => {
+                  // center 좌표 처리
+                  let centerLatLng;
+                  if (finalCenter && typeof finalCenter.getLat === 'function') {
+                    // 이미 LatLng 객체인 경우
+                    centerLatLng = finalCenter;
+                  } else if (finalCenter && finalCenter.lat && finalCenter.lng) {
+                    // 일반 객체인 경우
+                    centerLatLng = new window.kakao.maps.LatLng(finalCenter.lat, finalCenter.lng);
+                  } else {
+                    // 기본값
+                    centerLatLng = new window.kakao.maps.LatLng(37.5665, 126.9780);
+                  }
+
+                  const newMap = new window.kakao.maps.Map(mapContainer, {
+                    center: centerLatLng,
+                    level: finalLevel,
+                  });
+                  mapRef.current = newMap;
+
+                  console.log('지도 재초기화 완료, 언어:', kakaoLang);
+
+                  // 지도가 완전히 로드된 후 언어 적용을 위해 약간의 지연 후 지도 갱신
+                  setTimeout(() => {
+                    // 지도를 약간 이동시켜서 다시 렌더링 (언어 적용을 위해)
+                    const currentCenter = newMap.getCenter();
+                    newMap.setCenter(new window.kakao.maps.LatLng(
+                      currentCenter.getLat() + 0.00001,
+                      currentCenter.getLng()
+                    ));
+                    setTimeout(() => {
+                      newMap.setCenter(currentCenter);
+                    }, 100);
+                  }, 500);
+
+                  // 현재 위치 다시 설정
+                  setCurrentLocation(newMap);
+
+                  // route가 있으면 오버레이 다시 생성
+                  if (route && route.length > 0) {
+                    createOverlays(newMap);
+                  }
+                });
+              }
+            }
+            window.removeEventListener("kakaoMapLoaded", reinitHandler);
+          }, 100);
+        };
+
+        window.addEventListener("kakaoMapLoaded", reinitHandler);
+      } catch (error) {
+        console.error('카카오 지도 언어 변경 실패:', error);
+        console.error('에러 상세:', error);
+      }
+    };
+
+    console.log('언어 변경 이벤트 리스너 등록');
+    window.addEventListener('languageChanged', handleLanguageChange as EventListener);
+    return () => {
+      console.log('언어 변경 이벤트 리스너 제거');
+      window.removeEventListener('languageChanged', handleLanguageChange as EventListener);
+    };
+  }, [route, KAKAO_MAP_API_KEY, loadKakaoMapScript]);
 
   // route 변경 시 오버레이 업데이트 (경로는 자동으로 그리지 않음)
   useEffect(() => {
@@ -907,16 +1220,152 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     }
   }, [searchKeyword]);
 
+  // 경로 확인 버튼 토글 핸들러
+  const handleToggleRouteCheck = () => {
+    // 활성화/비활성화 토글
+    setIsRouteCheckActive(prev => !prev);
+  };
+
+  // 이미지 닫기 핸들러
+  const handleCloseStreetView = () => {
+    setShowStreetView(false);
+    setSelectedPlaceForImage(null);
+  };
+
+  // 선택된 장소에 맞는 이미지 URL 가져오기
+  const getPlaceImageUrl = (place: Location | null): string => {
+    if (!place) return '/place/ddp.jpg'; // 기본 이미지
+
+    // 1순위: 정확한 장소명으로 매핑 확인
+    let imageUrl = placeImageMap[place.name];
+
+    // 2순위: 장소 ID로 매핑 확인
+    if (!imageUrl) {
+      const idImageMap: Record<string, string> = {
+        'place1': '/place/kyungbok.png', // 경복궁
+        'place4': '/place/kotbab.jpg', // 꽃밥에 피다
+        'place10': '/place/kwangjang.jpg', // 광장시장
+        'place2': '/place/chunjpg.jpg', // 청계천
+        'place3': '/place/myungdongsungjpg.jpg', // 명동대성당
+        'place9': '/place/sudang.jpg', // 청수당 베이커리
+      };
+      imageUrl = idImageMap[place.id];
+    }
+
+    // 3순위: 장소명에 키워드가 포함되어 있는지 확인
+    if (!imageUrl) {
+      const name = place.name;
+      if (name.includes('경복궁')) {
+        imageUrl = '/place/kyungbok.png';
+      } else if (name.includes('꽃밥') || name.includes('꽃밥에 피다')) {
+        imageUrl = '/place/kotbab.jpg';
+      } else if (name.includes('광장시장')) {
+        imageUrl = '/place/kwangjang.jpg';
+      } else if (name.includes('청계천')) {
+        imageUrl = '/place/chunjpg.jpg';
+      } else if (name.includes('명동대성당') || name.includes('명동 대성당')) {
+        imageUrl = '/place/myungdongsungjpg.jpg';
+      } else if (name.includes('청수당')) {
+        imageUrl = '/place/sudang.jpg';
+      }
+    }
+
+    return imageUrl || '/place/ddp.jpg'; // 매핑이 없으면 기본 이미지
+  };
+
   return (
     <div className="relative w-full h-screen">
-      {KAKAO_MAP_API_KEY && (
-        <Script
-          src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_API_KEY}&autoload=false&libraries=services`}
-          strategy="afterInteractive"
-          onLoad={() => setTimeout(() => window.dispatchEvent(new Event("kakaoMapLoaded")), 100)}
-        />
+      {/* 지도 컨테이너 - 이미지가 표시되면 숨김 */}
+      <div id="map" className={`w-full h-full ${showStreetView ? 'hidden' : ''}`} />
+
+      {/* 장소별 이미지 - 이미지가 표시되면 보임 */}
+      {showStreetView && selectedPlaceForImage && (
+        <div className="absolute inset-0 w-full h-full bg-black z-50 relative">
+          {/* 닫기 버튼 */}
+          <button
+            onClick={handleCloseStreetView}
+            className="absolute top-4 right-4 z-60 px-4 py-2 bg-red-500 text-white rounded-lg shadow-lg hover:bg-red-600 transition-colors font-medium text-sm flex items-center gap-2"
+          >
+            <span>✕</span>
+            <span>{t('map.closeStreetView', currentLanguage)}</span>
+          </button>
+
+          {/* 장소명 표시 */}
+          <div className="absolute top-4 left-4 z-60 px-4 py-2 bg-black/70 text-white rounded-lg shadow-lg font-medium text-sm">
+            {selectedPlaceForImage.name}
+          </div>
+
+          {/* 장소별 이미지 */}
+          <img
+            src={getPlaceImageUrl(selectedPlaceForImage)}
+            alt={selectedPlaceForImage.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // 이미지 로드 실패 시 경고 메시지
+              console.warn('이미지 로드 실패:', selectedPlaceForImage.name);
+              alert(t('map.imageLoadError', currentLanguage));
+              setShowStreetView(false);
+            }}
+          />
+
+          {/* 현재 위치 마커 오버레이 */}
+          {currentLocationRef.current && (
+            <div
+              className="absolute z-50"
+              style={{
+                // 현재 위치를 이미지 중앙에 배치 (예시 위치, 실제로는 좌표에 맞게 조정 필요)
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              {/* 현재 위치 마커 */}
+              <div
+                className="w-6 h-6 bg-blue-500 border-3 border-white rounded-full shadow-lg"
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  backgroundColor: '#4285F4',
+                  border: '3px solid white',
+                  borderRadius: '50%',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                }}
+              />
+              {/* 현재 위치 원형 오버레이 */}
+              <div
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-2 border-blue-500 rounded-full opacity-30"
+                style={{
+                  width: '100px',
+                  height: '100px',
+                  border: '2px solid #4285F4',
+                  borderRadius: '50%',
+                  opacity: 0.3,
+                  marginTop: '-50px',
+                  marginLeft: '-50px',
+                }}
+              />
+            </div>
+          )}
+        </div>
       )}
-      <div id="map" className="w-full h-full" />
+
+      {/* 경로확인 활성화 버튼 - 지도 왼쪽 하단, 스케일 바 위에 배치 */}
+      {route && route.length > 0 && !showStreetView && (
+        <button
+          onClick={handleToggleRouteCheck}
+          className={`absolute bottom-16 left-4 z-10 px-4 py-2 rounded-lg shadow-lg transition-colors font-medium text-sm ${isRouteCheckActive
+            ? 'bg-green-500 text-white hover:bg-green-600'
+            : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          style={{
+            // 카카오 지도 스케일 바 위에 배치 (스케일 바는 약 bottom: 10px, left: 10px 위치)
+            bottom: '60px', // 스케일 바 위에 여유 공간을 두고 배치
+            left: '16px',
+          }}
+        >
+          {isRouteCheckActive ? t('map.routeCheckActive', currentLanguage) : t('map.checkRoute', currentLanguage)}
+        </button>
+      )}
     </div>
   );
 }
