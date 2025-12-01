@@ -26,39 +26,97 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
   const [selectedLanguage, setSelectedLanguage] = useState<string>('한국어'); // 기본 언어
   const [uiLanguage, setUiLanguage] = useState<string>('한국어');
 
+  // 국가에 맞는 기본 언어 매핑
+  const getLanguageByNationality = (nationality: string): string => {
+    const nationalityToLanguage: Record<string, string> = {
+      'South Korea': '한국어',
+      'United States': 'English',
+      'China': '简体中文',
+      'Japan': '日本語',
+      'Vietnam': 'Tiếng Việt',
+      'Thailand': 'ไทย',
+      'Philippines': 'English',
+      'India': 'English',
+      'United Kingdom': 'English',
+      'Others': '한국어',
+    };
+    return nationalityToLanguage[nationality] || '한국어';
+  };
+
   // 컴포넌트 마운트 시 저장된 언어 불러오기
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedLanguage = localStorage.getItem('selectedLanguage');
-      if (savedLanguage) {
+      
+      // 온보딩 데이터에서 국가 확인
+      const onboardingData = localStorage.getItem('onboardingData');
+      let nationalityBasedLanguage: string | null = null;
+      
+      if (onboardingData) {
+        try {
+          const data = JSON.parse(onboardingData);
+          if (data.nationality) {
+            nationalityBasedLanguage = getLanguageByNationality(data.nationality);
+          }
+        } catch (e) {
+          console.error('Failed to parse onboarding data:', e);
+        }
+      }
+      
+      // 사용자가 명시적으로 언어를 선택했는지 확인
+      const languageManuallySelected = localStorage.getItem('languageManuallySelected') === 'true';
+      
+      // 언어 우선순위:
+      // 1. 사용자가 명시적으로 선택한 언어 (저장된 언어)
+      // 2. 국가 기반 언어 (온보딩에서만 자동 설정)
+      // 3. 기본값
+      let languageToUse: string;
+      
+      if (languageManuallySelected && savedLanguage) {
+        // 사용자가 명시적으로 언어를 선택한 경우, 저장된 언어를 우선 사용
+        languageToUse = savedLanguage;
         setSelectedLanguage(savedLanguage);
-        // UI 언어도 업데이트
-        const langCode = getCurrentLanguage();
-        const languageNameMap: Record<string, string> = {
-          'ko': '한국어',
-          'en': 'English',
-          'ja': '日本語',
-          'zh-CN': '简体中文',
-          'zh-TW': '繁體中文',
-          'fr': 'Français',
-          'de': 'Deutsch',
-          'vi': 'Tiếng Việt',
-          'it': 'Italiano',
-          'ar': 'العربية',
-          'id': 'Bahasa Indonesia',
-          'th': 'ไทย',
-          'mn': 'монгол',
-          'pt': 'Português',
-          'es': 'Español',
-          'uz': 'oʻzbekcha',
-          'km': 'ខ្មែរ',
-          'ne': 'नेपाली',
-        };
-        setUiLanguage(languageNameMap[langCode] || savedLanguage);
+      } else if (nationalityBasedLanguage) {
+        // 사용자가 언어를 선택하지 않았고, 국가 기반 언어가 있으면 사용
+        languageToUse = nationalityBasedLanguage;
+        if (savedLanguage !== nationalityBasedLanguage) {
+          localStorage.setItem('selectedLanguage', nationalityBasedLanguage);
+        }
+        setSelectedLanguage(nationalityBasedLanguage);
+      } else if (savedLanguage) {
+        // 저장된 언어가 있으면 사용
+        languageToUse = savedLanguage;
+        setSelectedLanguage(savedLanguage);
       } else {
         // 기본값 설정
+        languageToUse = '한국어';
         localStorage.setItem('selectedLanguage', '한국어');
+        setSelectedLanguage('한국어');
       }
+      
+      // UI 언어도 업데이트
+      const langCode = getCurrentLanguage();
+      const languageNameMap: Record<string, string> = {
+        'ko': '한국어',
+        'en': 'English',
+        'ja': '日本語',
+        'zh-CN': '简体中文',
+        'zh-TW': '繁體中文',
+        'fr': 'Français',
+        'de': 'Deutsch',
+        'vi': 'Tiếng Việt',
+        'it': 'Italiano',
+        'ar': 'العربية',
+        'id': 'Bahasa Indonesia',
+        'th': 'ไทย',
+        'mn': 'монгол',
+        'pt': 'Português',
+        'es': 'Español',
+        'uz': 'oʻzbekcha',
+        'km': 'ខ្មែរ',
+        'ne': 'नेपाली',
+      };
+      setUiLanguage(languageNameMap[langCode] || languageToUse);
     }
 
     // 언어 변경 이벤트 리스너
@@ -164,7 +222,7 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
         </button>
       </div>
 
-      {/* 응급사항항 버튼 */}
+      {/* 응급사항 버튼 */}
       <button
         onClick={() => setIsEmergencyDialogOpen(true)}
         className="mt-auto px-3 py-3 bg-red-500 text-white rounded-xl hover:opacity-90 transition-opacity flex flex-col items-center gap-1"
@@ -188,6 +246,8 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
                   // 로컬 스토리지에 선택한 언어 저장
                   if (typeof window !== 'undefined') {
                     localStorage.setItem('selectedLanguage', lang.name);
+                    // 사용자가 명시적으로 언어를 선택했음을 표시
+                    localStorage.setItem('languageManuallySelected', 'true');
                   }
                   setIsLanguageDialogOpen(false);
                   // 언어 변경 이벤트 발생 (부모 컴포넌트에서 감지 가능)
