@@ -82,8 +82,8 @@ export function Sidebar({ onToggleChatbot, showChatbot = true, onReset }: Sideba
 
   const menuItems = [
     { icon: User, labelKey: 'sidebar.myPage', path: '/mypage' },
-    { icon: HeadphonesIcon, labelKey: 'sidebar.support', path: null },
-    { icon: Building2, labelKey: 'sidebar.aboutUs', path: null }
+    { icon: HeadphonesIcon, labelKey: 'sidebar.support', path: '/support' },
+    { icon: Building2, labelKey: 'sidebar.aboutUs', path: '/about' }
   ];
 
   const languages = [
