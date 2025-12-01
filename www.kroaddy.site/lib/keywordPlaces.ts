@@ -5,7 +5,7 @@ import { Location } from "./types";
 // 좌표는 사용자가 직접 수정한 정확한 값으로 업데이트됨
 // KakaoMap.tsx에서 이 파일의 좌표를 직접 사용합니다.
 export const keywordPlaceMap: Record<string, Location[]> = {
-  '근처': [
+  '있을까?': [
     {
       id: 'place1',
       name: '경복궁',

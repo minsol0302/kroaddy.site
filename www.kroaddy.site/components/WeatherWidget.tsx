@@ -11,7 +11,12 @@ interface WeatherData {
     city: string;
 }
 
-export function WeatherWidget() {
+interface WeatherWidgetProps {
+    onWeatherUpdate?: (weather: { temp: number; description: string; city: string }) => void;
+    onLocationUpdate?: (location: { lat: number; lng: number }) => void;
+}
+
+export function WeatherWidget({ onWeatherUpdate, onLocationUpdate }: WeatherWidgetProps = {}) {
     const [weather, setWeather] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +30,12 @@ export function WeatherWidget() {
                     navigator.geolocation.getCurrentPosition(
                         async (position) => {
                             const { latitude, longitude } = position.coords;
+                            
+                            // 위치 정보를 부모 컴포넌트로 전달
+                            if (onLocationUpdate) {
+                                onLocationUpdate({ lat: latitude, lng: longitude });
+                            }
+                            
                             const response = await fetch(
                                 `/api/weather?lat=${latitude}&lon=${longitude}`
                             );
@@ -36,6 +47,15 @@ export function WeatherWidget() {
                             const data = await response.json();
                             setWeather(data);
                             setLoading(false);
+                            
+                            // 날씨 정보를 부모 컴포넌트로 전달
+                            if (onWeatherUpdate) {
+                                onWeatherUpdate({
+                                    temp: data.temp,
+                                    description: data.description,
+                                    city: data.city
+                                });
+                            }
                         },
                         (err) => {
                             // 위치 권한이 거부된 경우 서울 기본값 사용
@@ -61,6 +81,15 @@ export function WeatherWidget() {
                 const data = await response.json();
                 setWeather(data);
                 setLoading(false);
+                
+                // 날씨 정보를 부모 컴포넌트로 전달
+                if (onWeatherUpdate) {
+                    onWeatherUpdate({
+                        temp: data.temp,
+                        description: data.description,
+                        city: data.city
+                    });
+                }
             } catch (err) {
                 setError('날씨 정보를 불러올 수 없습니다');
                 setLoading(false);

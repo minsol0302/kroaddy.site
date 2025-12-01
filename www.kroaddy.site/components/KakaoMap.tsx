@@ -19,6 +19,7 @@ interface KakaoMapProps {
   onPlaceClick?: (place: Location) => void;
   resetKey?: number; // 초기화를 위한 키
   drawRouteKey?: number; // 경로를 그릴지 말지 제어하는 키
+  onLocationUpdate?: (location: { lat: number; lng: number }) => void; // 현재 위치 업데이트 콜백
 }
 
 // 전역으로 onPlaceClick 저장 (이벤트 핸들러에서 접근하기 위해)
@@ -51,7 +52,7 @@ const getKakaoMapLang = (langCode: LanguageCode): string => {
 };
 
 
-export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick, resetKey = 0, drawRouteKey = 0 }: KakaoMapProps) {
+export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceClick, resetKey = 0, drawRouteKey = 0, onLocationUpdate }: KakaoMapProps) {
   const mapRef = useRef<any>(null);
   const [mapKey, setMapKey] = useState(0); // 지도 재초기화를 위한 키
   const [scriptLoaded, setScriptLoaded] = useState(false); // Script 로드 상태
@@ -289,6 +290,11 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
 
         // 현재 위치 좌표 저장
         currentLocationRef.current = { lat, lng };
+
+        // 위치 정보를 부모 컴포넌트로 전달
+        if (onLocationUpdate) {
+          onLocationUpdate({ lat, lng });
+        }
 
         // 지도 중심을 현재 위치로 이동
         map.setCenter(currentPosition);
@@ -1187,14 +1193,14 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       displayMarkerFromLocation(location);
     };
 
-    // 키워드에 '근처'가 포함되어 있는지 확인
+    // 키워드에 '있을까?'가 포함되어 있는지 확인
     const keyword = searchKeyword.trim();
-    const hasPlaceKeyword = keyword.includes('근처');
+    const hasPlaceKeyword = keyword.includes('있을까?');
 
     // 미리 정의된 키워드 매핑 확인
     let matchedKeyword: string | undefined;
     if (hasPlaceKeyword) {
-      matchedKeyword = '근처';
+      matchedKeyword = '있을까?';
     } else {
       // 다른 키워드도 확인 (부분 일치)
       matchedKeyword = Object.keys(keywordPlaceMap).find(key => keyword.includes(key));

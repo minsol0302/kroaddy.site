@@ -124,42 +124,66 @@ chatbot_router = APIRouter()
 
 @chatbot_router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def proxy_chatbot(request: Request, path: str):
-    async with httpx.AsyncClient() as client:
-        url = f"{CHATBOT_SERVICE_URL}/{path}"
-        params = dict(request.query_params)
-        headers = dict(request.headers)
-        headers.pop("host", None)
-        
-        if request.method == "GET":
-            response = await client.get(url, params=params, headers=headers)
-        elif request.method == "POST":
-            body = await request.body()
-            response = await client.post(url, content=body, params=params, headers=headers)
-        elif request.method == "PUT":
-            body = await request.body()
-            response = await client.put(url, content=body, params=params, headers=headers)
-        elif request.method == "DELETE":
-            response = await client.delete(url, params=params, headers=headers)
-        elif request.method == "PATCH":
-            body = await request.body()
-            response = await client.patch(url, content=body, params=params, headers=headers)
-        elif request.method == "OPTIONS":
-            response = await client.options(url, params=params, headers=headers)
-        else:
-            return Response(status_code=405)
-        
-        # CORS 헤더 추가
-        response_headers = dict(response.headers)
-        response_headers["Access-Control-Allow-Origin"] = "*"
-        response_headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-        response_headers["Access-Control-Allow-Headers"] = "*"
-        response_headers["Access-Control-Allow-Credentials"] = "true"
-        
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            url = f"{CHATBOT_SERVICE_URL}/{path}"
+            params = dict(request.query_params)
+            headers = dict(request.headers)
+            headers.pop("host", None)
+            headers.pop("content-length", None)  # content-length는 자동 계산됨
+            
+            logger.info(f"프록시 요청: {request.method} {url}")
+            
+            if request.method == "GET":
+                response = await client.get(url, params=params, headers=headers)
+            elif request.method == "POST":
+                body = await request.body()
+                logger.info(f"요청 본문 길이: {len(body)} bytes")
+                response = await client.post(url, content=body, params=params, headers=headers)
+            elif request.method == "PUT":
+                body = await request.body()
+                response = await client.put(url, content=body, params=params, headers=headers)
+            elif request.method == "DELETE":
+                response = await client.delete(url, params=params, headers=headers)
+            elif request.method == "PATCH":
+                body = await request.body()
+                response = await client.patch(url, content=body, params=params, headers=headers)
+            elif request.method == "OPTIONS":
+                response = await client.options(url, params=params, headers=headers)
+            else:
+                return Response(status_code=405)
+            
+            logger.info(f"프록시 응답: {response.status_code}, Content-Type: {response.headers.get('content-type')}")
+            logger.info(f"응답 본문 길이: {len(response.content)} bytes")
+            
+            # CORS 헤더 추가
+            response_headers = dict(response.headers)
+            response_headers["Access-Control-Allow-Origin"] = "*"
+            response_headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+            response_headers["Access-Control-Allow-Headers"] = "*"
+            response_headers["Access-Control-Allow-Credentials"] = "true"
+            
+            # Content-Type 명시적 설정
+            content_type = response.headers.get("content-type", "application/json")
+            
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=response_headers,
+                media_type=content_type
+            )
+    except Exception as e:
+        logger.error(f"프록시 에러: {e}", exc_info=True)
         return Response(
-            content=response.content,
-            status_code=response.status_code,
-            headers=response_headers,
-            media_type=response.headers.get("content-type")
+            content=f'{{"detail": "Gateway proxy error: {str(e)}"}}',
+            status_code=500,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json"
+            }
         )
 
 # 서브라우터를 메인 라우터에 연결
