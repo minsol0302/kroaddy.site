@@ -4,6 +4,29 @@ services:
     ports:
       - "9000:9000"
     container_name: gateway-service
+    environment:
+      - FEED_SERVICE_URL=http://feedservice:9003
+      - RAG_SERVICE_URL=http://ragservice:9002
+    depends_on:
+      - feedservice
+      - ragservice
+
+  feedservice:
+    build: ../feed.kroaddy.site
+    ports:
+      - "9003:9003"
+    container_name: feedservice
+    restart: unless-stopped
+
+  ragservice:
+    build: ../rag.kroaddy.site
+    ports:
+      - "9002:9002"
+    container_name: ragservice
+    restart: unless-stopped
+    volumes:
+      - ../rag.kroaddy.site/vector_db:/app/vector_db
+      - ../rag.kroaddy.site/data:/app/data
 
   crawlerservice:
     build: ./services/crawlerservice

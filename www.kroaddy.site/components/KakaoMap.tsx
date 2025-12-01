@@ -5,6 +5,7 @@ import Script from "next/script";
 import { createMarkerTooltipContent } from "./MarkerTooltip";
 import { Location } from "../lib/types";
 import { keywordPlaceMap } from "../lib/keywordPlaces";
+import { searchContentId, fetchTourImages } from "../lib/tourApi";
 
 declare global {
   interface Window {
@@ -38,8 +39,44 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   const currentLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   // 경로 Polyline 저장
   const routePolylineRef = useRef<any>(null);
+  // 마커의 실제 위치 저장 (location.id -> 실제 좌표)
+  const markerPositionsRef = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
   const KAKAO_MAP_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY;
+
+  // Tour API 이미지 캐시 (같은 장소에 대해 중복 요청 방지)
+  const tourImageCache = useRef<Map<string, string>>(new Map());
+
+  // 마커 hover 시 Tour API에서 이미지 가져오기
+  async function onMarkerHover(location: Location) {
+    try {
+      // 캐시 확인
+      if (tourImageCache.current.has(location.id)) {
+        return tourImageCache.current.get(location.id) || null;
+      }
+
+      // 1) 장소명 → contentId
+      const contentId = await searchContentId(location.name);
+      if (!contentId) {
+        console.warn("Tour API 결과 없음. 기본 이미지 사용");
+        return null;
+      }
+
+      // 2) contentId → 이미지
+      const images = await fetchTourImages(contentId);
+
+      const imageUrl = images.length > 0 ? images[0] : null;
+
+      if (imageUrl) {
+        tourImageCache.current.set(location.id, imageUrl);
+      }
+
+      return imageUrl;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
 
 
   // onPlaceClick을 전역에 저장 (이벤트 핸들러에서 접근하기 위해)
@@ -59,6 +96,9 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       if (tooltip) tooltip.setMap(null);
     });
     markerTooltipsRef.current.clear();
+
+    // 마커 위치 정보 초기화
+    markerPositionsRef.current.clear();
   };
 
 
@@ -124,9 +164,16 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       currentLocationRef.current.lng
     ));
 
-    // 정렬된 route의 각 장소를 순서대로 추가
+    // 정렬된 route의 각 장소를 순서대로 추가 (마커의 실제 위치 사용)
     sortedRoute.forEach((location) => {
-      path.push(new window.kakao.maps.LatLng(location.lat, location.lng));
+      // 마커의 실제 위치가 있으면 사용, 없으면 route의 좌표 사용
+      const actualPosition = markerPositionsRef.current.get(location.id);
+      if (actualPosition) {
+        path.push(new window.kakao.maps.LatLng(actualPosition.lat, actualPosition.lng));
+      } else {
+        // 마커가 아직 생성되지 않았거나 위치 정보가 없는 경우 route 좌표 사용
+        path.push(new window.kakao.maps.LatLng(location.lat, location.lng));
+      }
     });
 
     // Polyline으로 경로 그리기
@@ -148,7 +195,13 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       currentLocationRef.current.lng
     ));
     sortedRoute.forEach((location) => {
-      bounds.extend(new window.kakao.maps.LatLng(location.lat, location.lng));
+      // 마커의 실제 위치가 있으면 사용, 없으면 route 좌표 사용
+      const actualPosition = markerPositionsRef.current.get(location.id);
+      if (actualPosition) {
+        bounds.extend(new window.kakao.maps.LatLng(actualPosition.lat, actualPosition.lng));
+      } else {
+        bounds.extend(new window.kakao.maps.LatLng(location.lat, location.lng));
+      }
     });
     map.setBounds(bounds);
   };
@@ -386,15 +439,20 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
             const processedImageSrc = canvas.toDataURL('image/png');
 
             // 커스텀 마커 이미지 생성 (원본 비율 유지, 스타일 효과 적용)
+            const totalWidth = displayWidth + shadowOffset + padding * 2;
+            const totalHeight = displayHeight + shadowOffset + padding * 2;
             const markerImageSize = new window.kakao.maps.Size(
-              displayWidth + shadowOffset + padding * 2,
-              displayHeight + shadowOffset + padding * 2
+              totalWidth,
+              totalHeight
             );
+
+            const actualMarkerBottom = padding + displayHeight;
+
             const markerImageOption = {
               offset: new window.kakao.maps.Point(
-                (displayWidth + shadowOffset + padding * 2) / 2,
-                displayHeight + shadowOffset + padding * 2
-              ) // 마커 이미지 중앙 정렬 (하단 기준)
+                totalWidth / 2, // 가로 중앙
+                actualMarkerBottom // 실제 마커 이미지의 하단 (뾰족한 부분)
+              )
             };
             const markerImage = new window.kakao.maps.MarkerImage(
               processedImageSrc, // 처리된 이미지 사용
@@ -409,6 +467,17 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
               map: map,
             });
             markersRef.current.push(marker);
+
+            // 마커의 실제 위치 저장 (경로 그리기 시 사용)
+            markerPositionsRef.current.set(finalLocation.id, {
+              lat: markerPosition.lat,
+              lng: markerPosition.lng
+            });
+
+            // 마커 생성 후 경로가 그려져야 하는 경우 경로 업데이트
+            if (routePolylineRef.current && mapRef.current) {
+              drawRoute(mapRef.current);
+            }
 
             // 마커 클릭 이벤트 - PlacePopup 열기
             window.kakao.maps.event.addListener(marker, "click", () => {
@@ -430,7 +499,10 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
             markerTooltipsRef.current.set(marker, tooltipOverlay);
 
             // 마커에 mouseover 이벤트 추가 (마커 전체 영역)
-            window.kakao.maps.event.addListener(marker, "mouseover", function () {
+            let isHovering = false; // 현재 hover 상태 추적
+            window.kakao.maps.event.addListener(marker, "mouseover", async function () {
+              isHovering = true;
+
               // 다른 tooltip 모두 숨김
               markerTooltipsRef.current.forEach((tooltip) => {
                 if (tooltip && tooltip !== tooltipOverlay) {
@@ -438,14 +510,39 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
                 }
               });
 
-              // 현재 tooltip 표시
+              // 현재 tooltip 즉시 표시
               if (tooltipOverlay) {
                 tooltipOverlay.setMap(map);
+              }
+
+              // Tour API에서 이미지 가져오기 (비동기, 백그라운드에서 처리)
+              const tourImageUrl = await onMarkerHover(finalLocation);
+
+              // hover 상태가 유지되고 있고, 이미지를 가져왔으면 tooltip의 이미지 업데이트
+              if (isHovering && tourImageUrl && tooltipOverlay) {
+                try {
+                  // tooltip이 여전히 표시되어 있는지 확인
+                  if (tooltipOverlay.getMap() === map) {
+                    const tooltipContentStr = tooltipOverlay.getContent(); // 문자열 반환
+                    if (tooltipContentStr) {
+                      const parser = new DOMParser();
+                      const doc = parser.parseFromString(tooltipContentStr, 'text/html');
+                      const imgElement = doc.querySelector('.marker-tooltip-image img') as HTMLImageElement;
+                      if (imgElement) {
+                        imgElement.src = tourImageUrl;
+                        tooltipOverlay.setContent(doc.body.innerHTML); // 변경 내용 반영
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.error('Tooltip 이미지 업데이트 실패:', e);
+                }
               }
             });
 
             // 마커에 mouseout 이벤트 추가
             window.kakao.maps.event.addListener(marker, "mouseout", function () {
+              isHovering = false; // hover 상태 해제
               // tooltip 숨김
               if (tooltipOverlay) {
                 tooltipOverlay.setMap(null);
@@ -699,7 +796,10 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       markerTooltipsRef.current.set(marker, tooltipOverlay);
 
       // 마커에 mouseover 이벤트 추가
-      window.kakao.maps.event.addListener(marker, "mouseover", function () {
+      let isHovering = false; // 현재 hover 상태 추적
+      window.kakao.maps.event.addListener(marker, "mouseover", async function () {
+        isHovering = true;
+
         // 다른 tooltip 모두 숨김
         markerTooltipsRef.current.forEach((tooltip) => {
           if (tooltip && tooltip !== tooltipOverlay) {
@@ -707,14 +807,39 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
           }
         });
 
-        // 현재 tooltip 표시
+        // 현재 tooltip 즉시 표시
         if (tooltipOverlay) {
           tooltipOverlay.setMap(map);
+        }
+
+        // Tour API에서 이미지 가져오기 (비동기, 백그라운드에서 처리)
+        const tourImageUrl = await onMarkerHover(location);
+
+        // hover 상태가 유지되고 있고, 이미지를 가져왔으면 tooltip의 이미지 업데이트
+        if (isHovering && tourImageUrl && tooltipOverlay) {
+          try {
+            // tooltip이 여전히 표시되어 있는지 확인
+            if (tooltipOverlay.getMap() === map) {
+              const tooltipContentStr = tooltipOverlay.getContent(); // 문자열 반환
+              if (tooltipContentStr) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(tooltipContentStr, 'text/html');
+                const imgElement = doc.querySelector('.marker-tooltip-image img') as HTMLImageElement;
+                if (imgElement) {
+                  imgElement.src = tourImageUrl;
+                  tooltipOverlay.setContent(doc.body.innerHTML); // 변경 내용 반영
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Tooltip 이미지 업데이트 실패:', e);
+          }
         }
       });
 
       // 마커에 mouseout 이벤트 추가
       window.kakao.maps.event.addListener(marker, "mouseout", function () {
+        isHovering = false; // hover 상태 해제
         // tooltip 숨김
         if (tooltipOverlay) {
           tooltipOverlay.setMap(null);
