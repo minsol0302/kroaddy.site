@@ -596,6 +596,62 @@ export const translations: Translations = {
         'zh-CN': '太好了！我会在你移动时告诉你这些地方的隐藏故事！如果需要帮助，随时问我！',
         'zh-TW': '太好了！我會在你移動時告訴你這些地方的隱藏故事！如果需要幫助，隨時問我！',
     },
+    'map.checkRoute': {
+        'ko': '경로확인',
+        'en': 'Check Route',
+        'ja': 'ルート確認',
+        'zh-CN': '确认路线',
+        'zh-TW': '確認路線',
+    },
+    'map.routeCheckActive': {
+        'ko': '경로확인 활성화',
+        'en': 'Route Check Active',
+        'ja': 'ルート確認有効',
+        'zh-CN': '路线检查已激活',
+        'zh-TW': '路線檢查已激活',
+    },
+    'map.closeStreetView': {
+        'ko': '닫기',
+        'en': 'Close',
+        'ja': '閉じる',
+        'zh-CN': '关闭',
+        'zh-TW': '關閉',
+    },
+    'map.noLocation': {
+        'ko': '현재 위치를 가져올 수 없습니다.',
+        'en': 'Unable to get current location.',
+        'ja': '現在位置を取得できません。',
+        'zh-CN': '无法获取当前位置。',
+        'zh-TW': '無法獲取當前位置。',
+    },
+    'map.noApiKey': {
+        'ko': 'Google Maps API 키가 필요합니다.',
+        'en': 'Google Maps API key is required.',
+        'ja': 'Google Maps APIキーが必要です。',
+        'zh-CN': '需要Google Maps API密钥。',
+        'zh-TW': '需要Google Maps API密鑰。',
+    },
+    'map.loadingStreetView': {
+        'ko': '1인칭 시점 이미지를 불러오는 중...',
+        'en': 'Loading street view...',
+        'ja': 'ストリートビューを読み込み中...',
+        'zh-CN': '正在加载街景视图...',
+        'zh-TW': '正在載入街景視圖...',
+    },
+    'map.streetViewError': {
+        'ko': '1인칭 시점 이미지를 불러올 수 없습니다. 해당 위치에 Street View가 없을 수 있습니다.',
+        'en': 'Unable to load street view. Street View may not be available at this location.',
+        'ja': 'ストリートビューを読み込めません。この場所ではストリートビューが利用できない可能性があります。',
+        'zh-CN': '无法加载街景视图。此位置可能没有街景视图。',
+        'zh-TW': '無法載入街景視圖。此位置可能沒有街景視圖。',
+    },
+    'map.imageLoadError': {
+        'ko': '이미지를 불러올 수 없습니다.',
+        'en': 'Unable to load image.',
+        'ja': '画像を読み込めません。',
+        'zh-CN': '无法加载图像。',
+        'zh-TW': '無法載入圖像。',
+    },
 };
 
 /**
