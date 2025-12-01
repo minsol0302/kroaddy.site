@@ -90,13 +90,12 @@ export default function Home() {
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
-      const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(async () => {
         // 언어별로 다른 응답 제공
         let responseContent = '';
-        if (uiLanguage === 'ko') {
-          responseContent = `${t('chatbot.nearby.response', uiLanguage)}
 
----
+        // 한국어 장소 설명 (원본)
+        const koreanPlaces = `---
 
 ## 🏛️ 경복궁 (Gyeongbokgung Palace)
 
@@ -144,14 +143,15 @@ export default function Home() {
 
 한옥 스타일의 카페로 요즘 정말 인기 많아. 동양적인 인테리어가 예쁘고, 디저트도 정교하게 잘 만들어져 있어. 한국 전통 분위기 + 현대 감성 모두 즐길 수 있어서 외국인들이 좋아하는 곳이야.
 
----
+---`;
+
+        if (uiLanguage === 'ko') {
+          responseContent = `${t('chatbot.nearby.response', uiLanguage)}${koreanPlaces}
 
 **${t('chatbot.nearby.selectRoute', uiLanguage)}**`;
-        } else {
-          // 영어 및 기타 언어용 간단한 응답
-          responseContent = `${t('chatbot.nearby.response', uiLanguage)}
-
----
+        } else if (uiLanguage === 'en') {
+          // 영어일 때는 영어 원본 사용
+          const englishPlaces = `---
 
 ## 🏛️ Gyeongbokgung Palace
 
@@ -199,9 +199,25 @@ A quiet and comfortable cafe with Korean-style desserts. You can feel the hanok 
 
 A hanok-style cafe that's very popular these days. Beautiful Eastern interior and well-crafted desserts. A place foreigners love for both Korean traditional atmosphere and modern sensibility.
 
----
+---`;
+          responseContent = `${t('chatbot.nearby.response', uiLanguage)}${englishPlaces}
 
 **${t('chatbot.nearby.selectRoute', uiLanguage)}**`;
+        } else {
+          // 다른 언어의 경우 한국어를 번역
+          try {
+            const { translateText } = await import('../../service/translateService');
+            const translatedPlaces = await translateText(koreanPlaces, 'ko', uiLanguage);
+            responseContent = `${t('chatbot.nearby.response', uiLanguage)}${translatedPlaces}
+
+**${t('chatbot.nearby.selectRoute', uiLanguage)}**`;
+          } catch (error) {
+            console.error('번역 실패:', error);
+            // 번역 실패 시 한국어 원본 사용
+            responseContent = `${t('chatbot.nearby.response', uiLanguage)}${koreanPlaces}
+
+**${t('chatbot.nearby.selectRoute', uiLanguage)}**`;
+          }
         }
 
         // 작성중 메시지를 실제 답변으로 교체
