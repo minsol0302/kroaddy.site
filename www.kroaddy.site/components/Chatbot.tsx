@@ -346,18 +346,18 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
         <div className="sticky top-0 z-20 bg-white py-2 -mx-6 px-6 border-b border-gray-100">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {[
-              { label: 'K-POP' },
-              { label: '자연' },
-              { label: '액티비티' },
-              { label: '역사' },
-              { label: '박물관' },
+              { labelKey: 'chatbot.category.kpop', keyword: 'K-POP' },
+              { labelKey: 'chatbot.category.nature', keyword: '자연' },
+              { labelKey: 'chatbot.category.activity', keyword: '액티비티' },
+              { labelKey: 'chatbot.category.history', keyword: '역사' },
+              { labelKey: 'chatbot.category.museum', keyword: '박물관' },
             ].map((category, index) => (
               <button
                 key={index}
-                onClick={() => onSendMessage(category.label)}
+                onClick={() => onSendMessage(category.keyword)}
                 className="px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all whitespace-nowrap flex-shrink-0 text-xs font-medium text-gray-900"
               >
-                {category.label}
+                {t(category.labelKey, uiLanguage)}
               </button>
             ))}
           </div>
