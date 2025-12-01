@@ -302,12 +302,9 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center relative overflow-hidden"
               style={{
-                backgroundImage: 'url(/hanoks/danchung.jpg)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundColor: 'rgba(34, 83, 133, 0.8)',
               }}
             >
-              <div className="absolute inset-0 bg-black/20"></div>
               <span className="text-white relative z-10">R</span>
             </div>
             <div>
@@ -413,12 +410,9 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
             type="submit"
             className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center relative overflow-hidden"
             style={{
-              backgroundImage: 'url(/hanoks/danchung.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
+              backgroundColor: 'rgba(34, 83, 133, 0.8)',
             }}
           >
-            <div className="absolute inset-0 bg-black/20"></div>
             <Send className="w-5 h-5 relative z-10" />
           </button>
         </div>
