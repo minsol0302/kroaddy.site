@@ -1,6 +1,14 @@
 # --- 프로젝트 루트 .gitignore ---
 # 시블링 폴더들의 .env 파일 무시
 
+# 모든 .env 파일 (모든 위치)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
 # AI 서비스
 ai.kroaddy.site/.env
 ai.kroaddy.site/**/.env
