@@ -81,20 +81,25 @@ async def chat(request: ChatRequest):
     """
     try:
         logger.info(f"챗봇 요청 수신: {request.message}")
+        logger.info(f"대화 이력 길이: {len(request.conversation_history) if request.conversation_history else 0}")
         
         if request.conversation_history:
+            # 대화 이력이 있으면 전달
             response = chatbot.chat(
                 request.message,
                 conversation_history=request.conversation_history
             )
         else:
+            # 대화 이력이 없으면 간단한 호출
             response = simple_chat(request.message)
         
-        logger.info(f"챗봇 응답 생성 완료")
+        logger.info(f"챗봇 응답 생성 완료 (길이: {len(response)} 문자)")
         return ChatResponse(response=response)
         
     except Exception as e:
-        logger.error(f"챗봇 호출 실패: {e}")
+        logger.error(f"챗봇 호출 실패: {e}", exc_info=True)
+        import traceback
+        logger.error(f"에러 상세: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze-price", response_model=PriceAnalysisResponse)
