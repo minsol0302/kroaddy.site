@@ -12,12 +12,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 클라이언트 생성 (환경변수에서 키 자동 인식)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# API 키가 없으면 None으로 설정하고, 실제 사용 시에만 에러 발생
+_openai_api_key = os.getenv("OPENAI_API_KEY")
+if _openai_api_key:
+    client = OpenAI(api_key=_openai_api_key)
+else:
+    client = None
+    logger.warning("OPENAI_API_KEY가 설정되지 않았습니다. OpenAI API 기능이 작동하지 않을 수 있습니다.")
 
 class PriceAnalyzerChatbot:
     """가격 분석 챗봇 클래스"""
     
-    def __init__(self, model: str = "gpt-3.5-turbo", temperature: float = 0.7, max_tokens: int = 300):
+    def __init__(self, model: str = "gpt-3.5-turbo", temperature: float = 0.7, max_tokens: int = 1000):
         """
         챗봇 초기화
         
@@ -50,10 +56,27 @@ class PriceAnalyzerChatbot:
             
             # 대화 이력이 있으면 추가
             if conversation_history:
-                messages.extend(conversation_history)
+                # 대화 이력이 리스트인지 확인하고, 각 메시지의 형식 검증
+                if isinstance(conversation_history, list):
+                    for msg in conversation_history:
+                        if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                            messages.append({
+                                "role": msg["role"],
+                                "content": str(msg["content"])
+                            })
+                        else:
+                            logger.warning(f"잘못된 대화 이력 형식: {msg}")
+                else:
+                    logger.warning(f"대화 이력이 리스트가 아닙니다: {type(conversation_history)}")
             
             # 사용자 메시지 추가
             messages.append({"role": "user", "content": user_message})
+            
+            # 클라이언트 확인
+            if client is None:
+                error_msg = "OPENAI_API_KEY가 설정되지 않았습니다. 환경 변수를 확인해주세요."
+                logger.error(error_msg)
+                return "죄송합니다. OpenAI API 키가 설정되지 않아 응답을 생성할 수 없습니다."
             
             # 챗봇 호출
             response = client.chat.completions.create(

@@ -1,9 +1,6 @@
-// @ts-nocheck
-
 "use client";
 
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Sidebar } from "../../components/Sidebar";
 import { Chatbot } from "../../components/Chatbot";
 import KakaoMap from "../../components/KakaoMap";
@@ -27,6 +24,8 @@ export default function Home() {
   const [mapResetKey, setMapResetKey] = useState<number>(0);
   const [drawRouteKey, setDrawRouteKey] = useState<number>(0);
   const [uiLanguage, setUiLanguage] = useState<LanguageCode>(getCurrentLanguage());
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRefsRef = useRef<NodeJS.Timeout[]>([]);
 
   // 언어 변경 감지
   useEffect(() => {
@@ -40,6 +39,46 @@ export default function Home() {
     };
   }, []);
 
+  // cleanup: 컴포넌트 언마운트 시 타임아웃 및 AbortController 정리
+  useEffect(() => {
+    return () => {
+      // 모든 타임아웃 정리
+      timeoutRefsRef.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefsRef.current = [];
+
+      // 진행 중인 요청 취소
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
+  // 공통 함수: 작성중 메시지 생성
+  const createTypingMessage = useCallback((): Message => ({
+    role: 'assistant',
+    content: t('chatbot.typing', uiLanguage)
+  }), [uiLanguage]);
+
+  // 공통 함수: 작성중 메시지를 실제 답변으로 교체
+  const replaceTypingMessage = useCallback((
+    prevMessages: Message[],
+    typingMessage: Message,
+    newContent: string
+  ): Message[] => {
+    const lastMessage = prevMessages[prevMessages.length - 1];
+    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content === typingMessage.content) {
+      return [...prevMessages.slice(0, -1), {
+        role: 'assistant',
+        content: newContent
+      }];
+    }
+    return [...prevMessages, {
+      role: 'assistant',
+      content: newContent
+    }];
+  }, []);
+
   const handleSendMessage = (message: string) => {
     const newMessages = [...messages, { role: 'user' as const, content: message }];
     setMessages(newMessages);
@@ -47,14 +86,11 @@ export default function Home() {
     // '근처' 키워드 처리
     if (message.includes('근처') || message.toLowerCase().includes('nearby')) {
       // 작성중 메시지 추가
-      const typingMessage: Message = {
-        role: 'assistant',
-        content: t('chatbot.typing', uiLanguage)
-      };
+      const typingMessage = createTypingMessage();
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         // 언어별로 다른 응답 제공
         let responseContent = '';
         if (uiLanguage === 'ko') {
@@ -168,12 +204,8 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
 **${t('chatbot.nearby.selectRoute', uiLanguage)}**`;
         }
 
-        const response: Message = {
-          role: 'assistant',
-          content: responseContent
-        };
         // 작성중 메시지를 실제 답변으로 교체
-        setMessages([...newMessages, response]);
+        setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
 
         // '근처' 키워드에 매핑된 장소들을 route로 설정
         if (keywordPlaceMap['근처']) {
@@ -182,28 +214,21 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         }
         setScreen('chatResponse');
       }, 5000);
+      timeoutRefsRef.current.push(timeoutId);
       return;
     }
 
     // '박물관' 키워드 처리
     if (message.includes('박물관') || message.toLowerCase().includes('museum')) {
       // 작성중 메시지 추가
-      const typingMessage: Message = {
-        role: 'assistant',
-        content: t('chatbot.typing', uiLanguage)
-      };
+      const typingMessage = createTypingMessage();
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         const responseContent = t('chatbot.museum.response', uiLanguage);
-
-        const response: Message = {
-          role: 'assistant',
-          content: responseContent
-        };
         // 작성중 메시지를 실제 답변으로 교체
-        setMessages([...newMessages, response]);
+        setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
 
         // '박물관' 키워드에 매핑된 장소들을 route로 설정
         if (keywordPlaceMap['박물관']) {
@@ -212,28 +237,21 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         }
         setScreen('chatResponse');
       }, 5000);
+      timeoutRefsRef.current.push(timeoutId);
       return;
     }
 
     // '추천' 키워드 처리
     if (message.includes('추천') || message.toLowerCase().includes('recommend')) {
       // 작성중 메시지 추가
-      const typingMessage: Message = {
-        role: 'assistant',
-        content: t('chatbot.typing', uiLanguage)
-      };
+      const typingMessage = createTypingMessage();
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         const responseContent = t('chatbot.recommend.response', uiLanguage);
-
-        const response: Message = {
-          role: 'assistant',
-          content: responseContent
-        };
         // 작성중 메시지를 실제 답변으로 교체
-        setMessages([...newMessages, response]);
+        setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
 
         // 기존 route에서 특정 장소 제거하고 새 장소 추가
         if (keywordPlaceMap['근처']) {
@@ -256,28 +274,21 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         }
         setScreen('chatResponse');
       }, 5000);
+      timeoutRefsRef.current.push(timeoutId);
       return;
     }
 
     // '응' 키워드 처리
     if (message.includes('응') || message.toLowerCase().includes('yes') || message.toLowerCase().includes('ok')) {
       // 작성중 메시지 추가
-      const typingMessage: Message = {
-        role: 'assistant',
-        content: t('chatbot.typing', uiLanguage)
-      };
+      const typingMessage = createTypingMessage();
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         const responseContent = t('chatbot.yes.response', uiLanguage);
-
-        const response: Message = {
-          role: 'assistant',
-          content: responseContent
-        };
         // 작성중 메시지를 실제 답변으로 교체
-        setMessages([...newMessages, response]);
+        setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
 
         // 경로를 그리기 위해 drawRouteKey 증가
         if (route.length > 0) {
@@ -286,25 +297,20 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
 
         setScreen('chatResponse');
       }, 5000);
+      timeoutRefsRef.current.push(timeoutId);
       return;
     }
 
     // Historic sites recommendation simulation
     if (message.toLowerCase().includes('historic') && (message.toLowerCase().includes('recommend') || message.toLowerCase().includes('suggest'))) {
       // 작성중 메시지 추가
-      const typingMessage: Message = {
-        role: 'assistant',
-        content: '작성중...'
-      };
+      const typingMessage = createTypingMessage();
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
       setTimeout(() => {
-        const response: Message = {
-          role: 'assistant',
-          content: 'I recommend Gyeongbokgung Palace, Seodaemun Prison History Hall, and Changdeokgung Palace'
-        };
-        setMessages([...newMessages, response]);
+        const responseContent = 'I recommend Gyeongbokgung Palace, Seodaemun Prison History Hall, and Changdeokgung Palace';
+        setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
 
         // Set route
         const recommendedRoute: Location[] = [
@@ -334,44 +340,116 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         setScreen('chatResponse');
       }, 5000);
     } else {
-      // 키워드 검색 처리 (특정 키워드가 없으면 일반 검색으로 간주)
-      // "search", "find", "찾기" 등의 키워드가 있거나, 메시지가 장소명일 가능성이 있는 경우
+      // 명시적인 검색 키워드가 있는지 확인
       const trimmedMessage = message.trim();
-      if (trimmedMessage.length > 0) {
+      const searchKeywords = ['검색', '찾기', 'search', 'find', 'look for', '찾아', '검색해'];
+      const hasSearchKeyword = searchKeywords.some(keyword =>
+        trimmedMessage.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      // 명시적인 검색 키워드가 있고, 메시지가 짧고(10자 이하) 장소명일 가능성이 높은 경우만 키워드 검색
+      const isShortPlaceName = trimmedMessage.length <= 10 && trimmedMessage.length > 0;
+
+      if (hasSearchKeyword && isShortPlaceName) {
         // 키워드 검색으로 처리
-        setSearchKeyword(trimmedMessage);
-        setScreen('chatResponse');
+        const placeName = trimmedMessage.replace(new RegExp(searchKeywords.join('|'), 'gi'), '').trim();
+        if (placeName.length > 0) {
+          setSearchKeyword(placeName);
+          setScreen('chatResponse');
 
-        setTimeout(() => {
-          const response: Message = {
-            role: 'assistant',
-            content: uiLanguage === 'ko'
-              ? `"${trimmedMessage}" 검색 중...`
-              : `Searching for "${trimmedMessage}"...`
-          };
-          setMessages([...newMessages, response]);
-        }, 300);
-      } else {
-        // 일반 메시지에 대한 응답
-        // 작성중 메시지 추가
-        const typingMessage: Message = {
-          role: 'assistant',
-          content: t('chatbot.typing', uiLanguage)
-        };
-        setMessages([...newMessages, typingMessage]);
-        setScreen('chatResponse');
-
-        setTimeout(() => {
-          const responseContent = uiLanguage === 'ko'
-            ? `메시지를 받았습니다: "${message}". 이것은 임시 응답입니다.`
-            : `I received your message: "${message}". This is a placeholder response.`;
-          const response: Message = {
-            role: 'assistant',
-            content: responseContent
-          };
-          setMessages([...newMessages, response]);
-        }, 5000);
+          const timeoutId = setTimeout(() => {
+            const responseContent = uiLanguage === 'ko'
+              ? `"${placeName}" 검색 중...`
+              : `Searching for "${placeName}"...`;
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: responseContent
+            }]);
+          }, 300);
+          timeoutRefsRef.current.push(timeoutId);
+          return;
+        }
       }
+
+      // 그 외에는 모두 OpenAI API로 처리
+      // 일반 메시지에 대한 OpenAI API 호출
+      // 작성중 메시지 추가
+      const typingMessage = createTypingMessage();
+      const messagesWithTyping = [...newMessages, typingMessage];
+      setMessages(messagesWithTyping);
+      setScreen('chatResponse');
+
+      // 이전 요청 취소
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // 새로운 AbortController 생성
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      // OpenAI API 호출
+      const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:9000/chatbot';
+
+      // 대화 이력을 API 형식으로 변환 (현재 메시지 제외)
+      const conversationHistory = messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      // 타임아웃 설정 (30초)
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 30000);
+      timeoutRefsRef.current.push(timeoutId);
+
+      fetch(`${CHATBOT_API_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: message,
+          conversation_history: conversationHistory
+        }),
+        signal: controller.signal
+      })
+        .then(res => {
+          // 타임아웃 제거
+          timeoutRefsRef.current = timeoutRefsRef.current.filter(id => id !== timeoutId);
+          clearTimeout(timeoutId);
+
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          // 작성중 메시지를 실제 답변으로 교체
+          const responseContent = data.response || data.message || (uiLanguage === 'ko'
+            ? '응답을 받을 수 없습니다.'
+            : 'Unable to receive response.');
+          setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
+        })
+        .catch(error => {
+          // 타임아웃 제거
+          timeoutRefsRef.current = timeoutRefsRef.current.filter(id => id !== timeoutId);
+          clearTimeout(timeoutId);
+
+          // AbortError는 사용자가 취소한 것이므로 로그만 출력
+          if (error.name !== 'AbortError') {
+            console.error('챗봇 API 호출 실패:', error);
+          }
+
+          // 작성중 메시지를 에러 메시지로 교체
+          const errorMessage = uiLanguage === 'ko'
+            ? (error.name === 'AbortError'
+              ? '응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.'
+              : '죄송합니다. 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+            : (error.name === 'AbortError'
+              ? 'Request timeout. Please try again later.'
+              : 'Sorry, an error occurred. Please try again later.');
+
+          setMessages(prev => replaceTypingMessage(prev, typingMessage, errorMessage));
+        });
     }
   };
 

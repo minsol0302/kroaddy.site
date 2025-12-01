@@ -45,7 +45,6 @@ Thumbs.db
 pip-selfcheck.json
 
 # --- 환경 변수 파일 ---
-.env
 .env.local
 .env.*.local
 

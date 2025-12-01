@@ -62,10 +62,17 @@ async def proxy_feed(request: Request, path: str):
         else:
             return Response(status_code=405)
         
+        # CORS 헤더 추가
+        response_headers = dict(response.headers)
+        response_headers["Access-Control-Allow-Origin"] = "*"
+        response_headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response_headers["Access-Control-Allow-Headers"] = "*"
+        response_headers["Access-Control-Allow-Credentials"] = "true"
+        
         return Response(
             content=response.content,
             status_code=response.status_code,
-            headers=dict(response.headers),
+            headers=response_headers,
             media_type=response.headers.get("content-type")
         )
 
@@ -98,10 +105,17 @@ async def proxy_rag(request: Request, path: str):
         else:
             return Response(status_code=405)
         
+        # CORS 헤더 추가
+        response_headers = dict(response.headers)
+        response_headers["Access-Control-Allow-Origin"] = "*"
+        response_headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response_headers["Access-Control-Allow-Headers"] = "*"
+        response_headers["Access-Control-Allow-Credentials"] = "true"
+        
         return Response(
             content=response.content,
             status_code=response.status_code,
-            headers=dict(response.headers),
+            headers=response_headers,
             media_type=response.headers.get("content-type")
         )
 
@@ -134,10 +148,17 @@ async def proxy_chatbot(request: Request, path: str):
         else:
             return Response(status_code=405)
         
+        # CORS 헤더 추가
+        response_headers = dict(response.headers)
+        response_headers["Access-Control-Allow-Origin"] = "*"
+        response_headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        response_headers["Access-Control-Allow-Headers"] = "*"
+        response_headers["Access-Control-Allow-Credentials"] = "true"
+        
         return Response(
             content=response.content,
             status_code=response.status_code,
-            headers=dict(response.headers),
+            headers=response_headers,
             media_type=response.headers.get("content-type")
         )
 
