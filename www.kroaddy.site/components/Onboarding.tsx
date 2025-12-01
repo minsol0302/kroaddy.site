@@ -53,8 +53,39 @@ export default function Onboarding() {
         setFormData({ ...formData, [current.key]: value });
     };
 
+    // 국가에 맞는 기본 언어 매핑
+    const getLanguageByNationality = (nationality: string): string => {
+        const nationalityToLanguage: Record<string, string> = {
+            'South Korea': '한국어',
+            'United States': 'English',
+            'China': '简体中文',
+            'Japan': '日本語',
+            'Vietnam': 'Tiếng Việt',
+            'Thailand': 'ไทย',
+            'Philippines': 'English',
+            'India': 'English',
+            'United Kingdom': 'English',
+            'Others': '한국어',
+        };
+        return nationalityToLanguage[nationality] || '한국어';
+    };
+
     const handleOptionSelect = (value: string) => {
         handleInput(value);
+        
+        // 국가 선택 시 해당 국가에 맞는 언어를 localStorage에 저장
+        if (current.key === 'nationality') {
+            const defaultLanguage = getLanguageByNationality(value);
+            if (typeof window !== 'undefined') {
+                // 국가 선택 시 항상 해당 국가의 언어로 설정
+                localStorage.setItem('selectedLanguage', defaultLanguage);
+                // 온보딩에서 자동 설정된 언어임을 표시 (사용자가 명시적으로 선택한 것이 아님)
+                localStorage.setItem('languageManuallySelected', 'false');
+                // 언어 변경 이벤트 발생
+                window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: defaultLanguage } }));
+            }
+        }
+        
         // 옵션 선택 시 자동으로 다음으로 이동
         setTimeout(() => {
             handleNext();

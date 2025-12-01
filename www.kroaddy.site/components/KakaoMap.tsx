@@ -67,6 +67,8 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   const currentLocationCircleRef = useRef<any>(null);
   // 현재 위치 좌표 저장
   const currentLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+  // 위치 추적 watch ID 저장 (cleanup용)
+  const watchPositionIdRef = useRef<number | null>(null);
   // 경로 Polyline 저장
   const routePolylineRef = useRef<any>(null);
   // 마커의 실제 위치 저장 (location.id -> 실제 좌표)
@@ -76,27 +78,36 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(getCurrentLanguage());
   // 경로확인 활성화 상태
   const [isRouteCheckActive, setIsRouteCheckActive] = useState(false);
+  // 경로확인 활성화 상태 ref (클로저 문제 해결용)
+  const isRouteCheckActiveRef = useRef(false);
   // 이미지 표시 상태
   const [showStreetView, setShowStreetView] = useState(false);
   // 클릭한 장소 정보 (이미지 표시용)
   const [selectedPlaceForImage, setSelectedPlaceForImage] = useState<Location | null>(null);
+  // 현재 경로 인덱스 (이미지 뷰에서 경로 이동용)
+  const [currentRouteIndex, setCurrentRouteIndex] = useState<number>(-1);
 
   // 장소별 이미지 매핑
   const placeImageMap: Record<string, string> = {
-    '광장시장': '/place/kwangjang.jpg',
+    '광장시장': '/place/kwangjang.png',
     '경복궁': '/place/kyungbok.png',
-    '청계천': '/place/chunjpg.jpg',
-    '명동대성당': '/place/myungdongsungjpg.jpg',
-    '꽃밥에 피다 북촌 친환경 그로서란트': '/place/kotbab.jpg',
-    '비건 인사 채식당': '/place/ddp.jpg',
-    '채식요리전문점 오세계향': '/place/ddp.jpg',
-    '카페 수달': '/place/ddp.jpg',
-    '청수당 베이커리': '/place/sudang.jpg',
-    '서울 역사 박물관': '/place/ddp.jpg',
-    '대한민국 역사 박물관': '/place/ddp.jpg',
-    '국립 고궁 박물관': '/place/ddp.jpg',
-    '국립 민속 박물관': '/place/ddp.jpg',
-    '국립 중앙 박물관': '/place/ddp.jpg',
+    '청계천': '/place/chun.png',
+    '명동대성당': '/place/myungdong.png',
+    '꽃밥에 피다 북촌 친환경 그로서란트': '/place/kotbab.png',
+    '비건 인사 채식당': '/place/dongdaemunddp.png',
+    '채식요리전문점 오세계향': '/place/dongdaemunddp.png',
+    '카페 수달': '/place/dongdaemunddp.png',
+    '청수당 베이커리': '/place/sudang.png',
+    '서울 역사 박물관': '/place/dongdaemunddp.png',
+    '대한민국 역사 박물관': '/place/dongdaemunddp.png',
+    '국립 고궁 박물관': '/place/dongdaemunddp.png',
+    '국립 민속 박물관': '/place/dongdaemunddp.png',
+    '국립 중앙 박물관': '/place/dongdaemunddp.png',
+    '동대문': '/place/dongdaemun.png',
+    '동대문디자인플라자': '/place/dongdaemunddp.png',
+    '동대문 디자인 플라자': '/place/dongdaemunddp.png',
+    'DDP': '/place/dongdaemunddp.png',
+    '동대문역사문화공원': '/place/dongdaemunddp.png',
   };
 
   const KAKAO_MAP_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY;
@@ -136,14 +147,114 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   }
 
 
+  // 현재 위치가 동대문디자인플라자(DDP) 근처인지 확인하는 함수
+  const isNearDDP = (lat: number, lng: number): boolean => {
+    // 동대문 디자인플라자(DDP) 근처 좌표 범위
+    // DDP 좌표: 약 37.5665, 127.0090
+    // 약 300m 반경 내에 있으면 DDP로 판단
+    const ddpLat = 37.5665;
+    const ddpLng = 127.0090;
+    const radius = 0.003; // 약 300m (위도/경도 차이)
+    
+    const latDiff = Math.abs(lat - ddpLat);
+    const lngDiff = Math.abs(lng - ddpLng);
+    
+    return latDiff < radius && lngDiff < radius;
+  };
+
+  // 현재 위치가 동대문 근처인지 확인하는 함수 (일반 동대문)
+  const isNearDongdaemun = (lat: number, lng: number): boolean => {
+    // 동대문 근처 좌표 범위 (DDP보다 넓은 범위)
+    // 동대문 좌표: 약 37.5714, 127.0097
+    // 약 500m 반경 내에 있으면 동대문으로 판단
+    const dongdaemunLat = 37.5714;
+    const dongdaemunLng = 127.0097;
+    const radius = 0.005; // 약 500m (위도/경도 차이)
+    
+    const latDiff = Math.abs(lat - dongdaemunLat);
+    const lngDiff = Math.abs(lng - dongdaemunLng);
+    
+    return latDiff < radius && lngDiff < radius;
+  };
+
+  // 장소에 매핑된 이미지가 있는지 확인하는 함수
+  const hasMappedImage = (place: Location): boolean => {
+    // 1순위: 정확한 장소명으로 매핑 확인
+    if (placeImageMap[place.name]) {
+      return true;
+    }
+
+    // 2순위: 장소 ID로 매핑 확인
+    const idImageMap: Record<string, string> = {
+      'place1': '/place/kyungbok.png', // 경복궁
+      'place4': '/place/kotbab.png', // 꽃밥에 피다
+      'place10': '/place/kwangjang.png', // 광장시장
+      'place2': '/place/chun.png', // 청계천
+      'place3': '/place/myungdong.png', // 명동대성당
+      'place9': '/place/sudang.png', // 청수당 베이커리
+    };
+    if (idImageMap[place.id]) {
+      return true;
+    }
+
+    // 3순위: 장소명에 키워드가 포함되어 있는지 확인
+    const name = place.name;
+    if (name.includes('경복궁') ||
+        name.includes('꽃밥') || name.includes('꽃밥에 피다') ||
+        name.includes('광장시장') ||
+        name.includes('청계천') ||
+        name.includes('명동대성당') || name.includes('명동 대성당') ||
+        name.includes('청수당') ||
+        name.includes('동대문디자인플라자') || name.includes('동대문 디자인 플라자') || name.includes('DDP') || name.includes('동대문역사문화공원') ||
+        name.includes('동대문')) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // 현재 위치에 매핑된 이미지가 있는지 확인하는 함수
+  const getCurrentLocationImage = (): string | null => {
+    if (!currentLocationRef.current) return null;
+    
+    const { lat, lng } = currentLocationRef.current;
+    
+    // 1순위: 동대문디자인플라자(DDP) 근처인지 확인 (더 좁은 범위)
+    if (isNearDDP(lat, lng)) {
+      return '/place/dongdaemunddp.png';
+    }
+    
+    // 2순위: 일반 동대문 근처인지 확인 (더 넓은 범위)
+    if (isNearDongdaemun(lat, lng)) {
+      return '/place/dongdaemun.png';
+    }
+    
+    return null;
+  };
+
   // onPlaceClick을 전역에 저장 (이벤트 핸들러에서 접근하기 위해)
   useEffect(() => {
-    // 경로확인이 활성화된 상태에서 장소를 클릭하면 이미지 표시
+    // 경로확인이 활성화된 상태에서 장소를 클릭하면 이미지 표시 (매핑된 이미지가 있을 때만)
     globalOnPlaceClick = (place: Location) => {
       if (isRouteCheckActive) {
-        // 활성화된 상태에서 장소 클릭 시 해당 장소의 이미지 표시
-        setSelectedPlaceForImage(place);
-        setShowStreetView(true);
+        // 활성화된 상태에서 장소 클릭 시 매핑된 이미지가 있을 때만 표시
+        if (hasMappedImage(place)) {
+          const mappedRoute = getMappedRoute();
+          // 클릭한 장소의 인덱스 찾기
+          const index = mappedRoute.findIndex((loc: Location) => loc.id === place.id);
+          if (index !== -1) {
+            setCurrentRouteIndex(index);
+          } else {
+            setCurrentRouteIndex(-1);
+          }
+          setSelectedPlaceForImage(place);
+          setShowStreetView(true);
+        } else {
+          // 매핑된 이미지가 없으면 PlacePopup 열기
+          if (onPlaceClick) {
+            onPlaceClick(place);
+          }
+        }
       } else {
         // 비활성화 상태에서는 기존 동작 (PlacePopup 열기)
         if (onPlaceClick) {
@@ -214,8 +325,19 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
 
     // 현재 위치와 route가 모두 있어야 경로를 그릴 수 있음
     if (!currentLocationRef.current || !route || route.length === 0) {
+      console.log('[경로 그리기] 조건 불만족:', {
+        현재위치: currentLocationRef.current,
+        route길이: route?.length
+      });
       return;
     }
+
+    // 디버깅: 경로 그리기 시작 로그
+    console.log('[경로 그리기] 시작:', {
+      현재위치: currentLocationRef.current,
+      route장소수: route.length,
+      마커위치저장수: markerPositionsRef.current.size
+    });
 
     // route를 order 순서대로 정렬 (order가 없으면 기존 순서 유지)
     const sortedRoute = [...route].sort((a, b) => {
@@ -234,14 +356,16 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     ));
 
     // 정렬된 route의 각 장소를 순서대로 추가 (마커의 실제 위치 사용)
-    sortedRoute.forEach((location) => {
+    sortedRoute.forEach((location, index) => {
       // 마커의 실제 위치가 있으면 사용, 없으면 route의 좌표 사용
       const actualPosition = markerPositionsRef.current.get(location.id);
       if (actualPosition) {
         path.push(new window.kakao.maps.LatLng(actualPosition.lat, actualPosition.lng));
+        console.log(`[경로 포인트 ${index + 1}] ${location.name}: 마커 위치 사용`, actualPosition);
       } else {
         // 마커가 아직 생성되지 않았거나 위치 정보가 없는 경우 route 좌표 사용
         path.push(new window.kakao.maps.LatLng(location.lat, location.lng));
+        console.warn(`[경로 포인트 ${index + 1}] ${location.name}: 마커 위치 없음, route 좌표 사용`, { lat: location.lat, lng: location.lng });
       }
     });
 
@@ -275,78 +399,112 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     map.setBounds(bounds);
   };
 
-  // 현재 위치 가져오기 및 지도에 표시
+  // 현재 위치 업데이트 함수 (위치가 변경될 때마다 호출)
+  const updateCurrentLocation = (map: any, position: GeolocationPosition) => {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    const currentPosition = new window.kakao.maps.LatLng(lat, lng);
+
+    // 현재 위치 좌표 저장
+    const previousLocation = currentLocationRef.current;
+    currentLocationRef.current = { lat, lng };
+
+    // 디버깅: 현재 위치 로그
+    console.log('[현재 위치 업데이트]', {
+      lat,
+      lng,
+      정확도: position.coords.accuracy + 'm',
+      이전위치: previousLocation
+    });
+
+    // 위치 정보를 부모 컴포넌트로 전달
+    if (onLocationUpdate) {
+      onLocationUpdate({ lat, lng });
+    }
+
+    // 첫 위치 설정 시에만 지도 중심 이동
+    if (!previousLocation) {
+      map.setCenter(currentPosition);
+      map.setLevel(3); // 좀 더 가까운 레벨로 설정
+    }
+
+    // 기존 현재 위치 마커 제거
+    clearCurrentLocationMarker();
+
+    // 현재 위치에 원형 오버레이 추가 (반경 표시)
+    const circle = new window.kakao.maps.Circle({
+      center: currentPosition,
+      radius: 50, // 50미터 반경
+      strokeWeight: 2,
+      strokeColor: '#4285F4',
+      strokeOpacity: 0.6,
+      fillColor: '#4285F4',
+      fillOpacity: 0.15,
+    });
+    circle.setMap(map);
+    currentLocationCircleRef.current = circle;
+
+    // 현재 위치 마커 생성 (SVG로 파란색 원형 마커 생성)
+    const markerContent = `
+      <div style="
+        width: 20px;
+        height: 20px;
+        background-color: #4285F4;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      "></div>
+    `;
+
+    const customOverlay = new window.kakao.maps.CustomOverlay({
+      position: currentPosition,
+      content: markerContent,
+      yAnchor: 0.5,
+      xAnchor: 0.5,
+    });
+    customOverlay.setMap(map);
+
+    // 마커 참조 저장 (CustomOverlay를 마커처럼 사용)
+    currentLocationMarkerRef.current = customOverlay;
+
+    // 경로 그리기 (route가 있고 경로가 이미 그려져 있으면 업데이트)
+    if (route && route.length > 0 && routePolylineRef.current) {
+      drawRoute(map);
+    }
+  };
+
+  // 현재 위치 가져오기 및 지속 추적
   const setCurrentLocation = (map: any) => {
     if (!navigator.geolocation) {
       console.warn('Geolocation is not supported by this browser.');
+      // 기본 위치(서울시청) 사용
+      const defaultPosition = { lat: 37.5665, lng: 126.9780 };
+      currentLocationRef.current = defaultPosition;
+      if (onLocationUpdate) {
+        onLocationUpdate(defaultPosition);
+      }
       return;
     }
 
+    // 기존 watchPosition이 있으면 정리
+    if (watchPositionIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchPositionIdRef.current);
+      watchPositionIdRef.current = null;
+    }
+
+    // 먼저 현재 위치를 한 번 가져오기
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const currentPosition = new window.kakao.maps.LatLng(lat, lng);
-
-        // 현재 위치 좌표 저장
-        currentLocationRef.current = { lat, lng };
-
-        // 위치 정보를 부모 컴포넌트로 전달
-        if (onLocationUpdate) {
-          onLocationUpdate({ lat, lng });
-        }
-
-        // 지도 중심을 현재 위치로 이동
-        map.setCenter(currentPosition);
-        map.setLevel(3); // 좀 더 가까운 레벨로 설정
-
-        // 기존 현재 위치 마커 제거
-        clearCurrentLocationMarker();
-
-        // 현재 위치에 원형 오버레이 추가 (반경 표시)
-        const circle = new window.kakao.maps.Circle({
-          center: currentPosition,
-          radius: 50, // 50미터 반경
-          strokeWeight: 2,
-          strokeColor: '#4285F4',
-          strokeOpacity: 0.6,
-          fillColor: '#4285F4',
-          fillOpacity: 0.15,
-        });
-        circle.setMap(map);
-        currentLocationCircleRef.current = circle;
-
-        // 현재 위치 마커 생성 (SVG로 파란색 원형 마커 생성)
-        const markerContent = `
-          <div style="
-            width: 20px;
-            height: 20px;
-            background-color: #4285F4;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          "></div>
-        `;
-
-        const customOverlay = new window.kakao.maps.CustomOverlay({
-          position: currentPosition,
-          content: markerContent,
-          yAnchor: 0.5,
-          xAnchor: 0.5,
-        });
-        customOverlay.setMap(map);
-
-        // 마커 참조 저장 (CustomOverlay를 마커처럼 사용)
-        currentLocationMarkerRef.current = customOverlay;
-
-        // 경로 그리기 (route가 있으면)
-        if (route && route.length > 0) {
-          drawRoute(map);
-        }
+        updateCurrentLocation(map, position);
       },
       (error) => {
         console.warn('Error getting current location:', error);
         // 위치를 가져오지 못하면 기본 위치(서울시청) 사용
+        const defaultPosition = { lat: 37.5665, lng: 126.9780 };
+        currentLocationRef.current = defaultPosition;
+        if (onLocationUpdate) {
+          onLocationUpdate(defaultPosition);
+        }
       },
       {
         enableHighAccuracy: true,
@@ -354,6 +512,24 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         maximumAge: 0,
       }
     );
+
+    // 위치 변경을 지속적으로 추적
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        updateCurrentLocation(map, position);
+      },
+      (error) => {
+        console.warn('Error watching position:', error);
+        // 에러가 발생해도 기존 위치 유지
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000, // 30초 이내의 캐시된 위치 허용
+      }
+    );
+
+    watchPositionIdRef.current = watchId;
   };
 
   // route에 따라 마커와 오버레이 생성 (오버레이는 숨김 상태)
@@ -548,9 +724,22 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
               lng: markerPosition.lng
             });
 
+            // 디버깅: 마커 위치 로그
+            console.log(`[마커 생성] ${finalLocation.name}:`, {
+              id: finalLocation.id,
+              원본좌표: { lat: location.lat, lng: location.lng },
+              실제좌표: markerPosition,
+              API좌표: apiPlaceInfo ? { lat: parseFloat(apiPlaceInfo.y), lng: parseFloat(apiPlaceInfo.x) } : null
+            });
+
             // 마커 생성 후 경로가 그려져야 하는 경우 경로 업데이트
-            if (routePolylineRef.current && mapRef.current) {
-              drawRoute(mapRef.current);
+            if (routePolylineRef.current && mapRef.current && currentLocationRef.current) {
+              // 약간의 지연을 두고 경로 다시 그리기 (모든 마커가 생성될 수 있도록)
+              setTimeout(() => {
+                if (mapRef.current && currentLocationRef.current) {
+                  drawRoute(mapRef.current);
+                }
+              }, 100);
             }
 
             // 마커 클릭 이벤트 - PlacePopup 열기
@@ -699,8 +888,33 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
 
         // 지도 클릭 이벤트
         window.kakao.maps.event.addListener(map, "click", function (mouseEvent: any) {
-
           const latlng = mouseEvent.latLng;
+          const clickedLat = latlng.getLat();
+          const clickedLng = latlng.getLng();
+
+          // 경로확인 활성화 상태에서 현재 위치 근처를 클릭했는지 확인
+          if (isRouteCheckActiveRef.current && currentLocationRef.current) {
+            const currentLat = currentLocationRef.current.lat;
+            const currentLng = currentLocationRef.current.lng;
+            // 약 50m 이내 클릭했는지 확인
+            const distance = Math.sqrt(
+              Math.pow(clickedLat - currentLat, 2) + Math.pow(clickedLng - currentLng, 2)
+            );
+            
+            if (distance < 0.0005) { // 약 50m
+              const currentLocationImage = getCurrentLocationImage();
+              if (currentLocationImage) {
+                const currentLocationPlace = getCurrentLocationAsPlace();
+                if (currentLocationPlace) {
+                  // 현재 위치의 인덱스는 항상 첫 번째 (0)
+                  setCurrentRouteIndex(0);
+                  setSelectedPlaceForImage(currentLocationPlace);
+                  setShowStreetView(true);
+                  return; // 현재 위치 클릭 처리 후 종료
+                }
+              }
+            }
+          }
 
           // 좌표로 주소 검색 및 주변 장소 검색
           const geocoder = new window.kakao.maps.services.Geocoder();
@@ -1062,6 +1276,16 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     // 현재 위치는 유지 (초기화하지 않음)
   }, [resetKey]);
 
+  // 컴포넌트 언마운트 시 위치 추적 정리
+  useEffect(() => {
+    return () => {
+      if (watchPositionIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchPositionIdRef.current);
+        watchPositionIdRef.current = null;
+      }
+    };
+  }, []);
+
   // drawRouteKey 변경 시 경로 그리기 ("응" 입력 시에만 경로를 그리도록 함)
   useEffect(() => {
     if (!mapRef.current || !window.kakao?.maps) return;
@@ -1229,18 +1453,217 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   // 경로 확인 버튼 토글 핸들러
   const handleToggleRouteCheck = () => {
     // 활성화/비활성화 토글
-    setIsRouteCheckActive(prev => !prev);
+    setIsRouteCheckActive(prev => {
+      const newValue = !prev;
+      isRouteCheckActiveRef.current = newValue;
+      return newValue;
+    });
+  };
+
+  // isRouteCheckActive 상태 변경 시 ref도 업데이트
+  useEffect(() => {
+    isRouteCheckActiveRef.current = isRouteCheckActive;
+  }, [isRouteCheckActive]);
+
+  // 현재 위치를 Location 객체로 변환하는 함수
+  const getCurrentLocationAsPlace = (): Location | null => {
+    if (!currentLocationRef.current) return null;
+    
+    const { lat, lng } = currentLocationRef.current;
+    const currentLocationImage = getCurrentLocationImage();
+    
+    if (currentLocationImage) {
+      // 현재 위치의 이미지에 따라 이름 설정
+      let name = '현재 위치';
+      if (isNearDDP(lat, lng)) {
+        name = '동대문디자인플라자';
+      } else if (isNearDongdaemun(lat, lng)) {
+        name = '동대문';
+      }
+      
+      return {
+        id: 'current-location',
+        name: name,
+        address: '',
+        lat: lat,
+        lng: lng,
+      };
+    }
+    
+    return null;
+  };
+
+  // 매핑된 이미지가 있는 전체 경로 배열 생성 (현재 위치 + route)
+  const getMappedRoute = (): Location[] => {
+    const mappedRoute: Location[] = [];
+    const addedIds = new Set<string>(); // 이미 추가된 장소 ID 추적
+    const addedNames = new Set<string>(); // 이미 추가된 장소 이름 추적 (중복 방지용)
+    
+    // 1. 현재 위치 추가 (매핑된 이미지가 있는 경우만)
+    const currentLocationPlace = getCurrentLocationAsPlace();
+    if (currentLocationPlace) {
+      mappedRoute.push(currentLocationPlace);
+      addedIds.add(currentLocationPlace.id);
+      addedNames.add(currentLocationPlace.name);
+      
+      // 현재 위치가 동대문디자인플라자일 때, 동대문을 두 번째 경로로 추가
+      if (currentLocationPlace.name === '동대문디자인플라자') {
+        const dongdaemunPlace: Location = {
+          id: 'dongdaemun-next',
+          name: '동대문',
+          address: '서울특별시 종로구 종로 6가',
+          lat: 37.5714,
+          lng: 127.0097,
+        };
+        // 동대문이 이미 route에 포함되어 있지 않은 경우만 추가
+        const isDongdaemunInRoute = route.some(loc => 
+          loc.name === '동대문' || 
+          (loc.name.includes('동대문') && !loc.name.includes('디자인플라자') && !loc.name.includes('DDP'))
+        );
+        if (!isDongdaemunInRoute && hasMappedImage(dongdaemunPlace)) {
+          mappedRoute.push(dongdaemunPlace);
+          addedIds.add(dongdaemunPlace.id);
+          addedNames.add(dongdaemunPlace.name);
+        }
+      }
+    }
+    
+    // 2. route에서 매핑된 이미지가 있는 장소만 추가
+    if (route && route.length > 0) {
+      // route를 order 순서대로 정렬
+      const sortedRoute = [...route].sort((a, b) => {
+        const orderA = a.order !== undefined ? a.order : Infinity;
+        const orderB = b.order !== undefined ? b.order : Infinity;
+        return orderA - orderB;
+      });
+      
+      sortedRoute.forEach((location) => {
+        // 동대문은 이미 추가했으므로 제외 (동대문디자인플라자가 현재 위치일 때)
+        if (currentLocationPlace?.name === '동대문디자인플라자') {
+          const isDongdaemun = location.name === '동대문' || 
+            (location.name.includes('동대문') && !location.name.includes('디자인플라자') && !location.name.includes('DDP'));
+          if (isDongdaemun) {
+            return; // 동대문은 이미 추가했으므로 건너뛰기
+          }
+        }
+        
+        // 중복 체크: 이미 추가된 장소는 건너뛰기
+        if (addedIds.has(location.id) || addedNames.has(location.name)) {
+          return;
+        }
+        
+        if (hasMappedImage(location)) {
+          mappedRoute.push(location);
+          addedIds.add(location.id);
+          addedNames.add(location.name);
+        }
+      });
+    }
+    
+    return mappedRoute;
+  };
+
+  // 다음 경로로 이동
+  const handleNextRoute = () => {
+    const mappedRoute = getMappedRoute();
+    if (currentRouteIndex < mappedRoute.length - 1) {
+      const nextIndex = currentRouteIndex + 1;
+      setCurrentRouteIndex(nextIndex);
+      setSelectedPlaceForImage(mappedRoute[nextIndex]);
+      setShowStreetView(true);
+    }
+  };
+
+  // 이전 경로로 이동
+  const handlePrevRoute = () => {
+    const mappedRoute = getMappedRoute();
+    if (currentRouteIndex > 0) {
+      const prevIndex = currentRouteIndex - 1;
+      setCurrentRouteIndex(prevIndex);
+      setSelectedPlaceForImage(mappedRoute[prevIndex]);
+      setShowStreetView(true);
+    }
   };
 
   // 이미지 닫기 핸들러
   const handleCloseStreetView = () => {
     setShowStreetView(false);
     setSelectedPlaceForImage(null);
+    setCurrentRouteIndex(-1);
   };
 
-  // 선택된 장소에 맞는 이미지 URL 가져오기
-  const getPlaceImageUrl = (place: Location | null): string => {
-    if (!place) return '/place/ddp.jpg'; // 기본 이미지
+  // 이미지 표시 상태에 따라 현재 위치 마커와 원형 오버레이 표시/숨김
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (showStreetView) {
+      // 이미지가 표시되면 현재 위치 마커와 원형 오버레이 숨김
+      if (currentLocationMarkerRef.current) {
+        currentLocationMarkerRef.current.setMap(null);
+      }
+      if (currentLocationCircleRef.current) {
+        currentLocationCircleRef.current.setMap(null);
+      }
+    } else {
+      // 이미지가 닫히면 현재 위치 마커와 원형 오버레이 다시 표시
+      if (currentLocationRef.current && mapRef.current) {
+        const currentPosition = new window.kakao.maps.LatLng(
+          currentLocationRef.current.lat,
+          currentLocationRef.current.lng
+        );
+
+        // 원형 오버레이 다시 표시
+        if (currentLocationCircleRef.current) {
+          currentLocationCircleRef.current.setMap(mapRef.current);
+        } else if (window.kakao?.maps) {
+          const circle = new window.kakao.maps.Circle({
+            center: currentPosition,
+            radius: 50,
+            strokeWeight: 2,
+            strokeColor: '#4285F4',
+            strokeOpacity: 0.6,
+            fillColor: '#4285F4',
+            fillOpacity: 0.15,
+          });
+          circle.setMap(mapRef.current);
+          currentLocationCircleRef.current = circle;
+        }
+
+        // 마커 다시 표시
+        if (currentLocationMarkerRef.current) {
+          currentLocationMarkerRef.current.setMap(mapRef.current);
+        } else if (window.kakao?.maps) {
+          const markerContent = `
+            <div style="
+              width: 20px;
+              height: 20px;
+              background-color: #4285F4;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            "></div>
+          `;
+          const customOverlay = new window.kakao.maps.CustomOverlay({
+            position: currentPosition,
+            content: markerContent,
+            yAnchor: 0.5,
+            xAnchor: 0.5,
+          });
+          customOverlay.setMap(mapRef.current);
+          currentLocationMarkerRef.current = customOverlay;
+        }
+      }
+    }
+  }, [showStreetView]);
+
+  // 선택된 장소에 맞는 이미지 URL 가져오기 (매핑이 없으면 null 반환)
+  const getPlaceImageUrl = (place: Location | null): string | null => {
+    if (!place) return null;
+
+    // 현재 위치인 경우 특별 처리
+    if (place.id === 'current-location') {
+      return getCurrentLocationImage();
+    }
 
     // 1순위: 정확한 장소명으로 매핑 확인
     let imageUrl = placeImageMap[place.name];
@@ -1249,11 +1672,11 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     if (!imageUrl) {
       const idImageMap: Record<string, string> = {
         'place1': '/place/kyungbok.png', // 경복궁
-        'place4': '/place/kotbab.jpg', // 꽃밥에 피다
-        'place10': '/place/kwangjang.jpg', // 광장시장
-        'place2': '/place/chunjpg.jpg', // 청계천
-        'place3': '/place/myungdongsungjpg.jpg', // 명동대성당
-        'place9': '/place/sudang.jpg', // 청수당 베이커리
+        'place4': '/place/kotbab.png', // 꽃밥에 피다
+        'place10': '/place/kwangjang.png', // 광장시장
+        'place2': '/place/chun.png', // 청계천
+        'place3': '/place/myungdong.png', // 명동대성당
+        'place9': '/place/sudang.png', // 청수당 베이커리
       };
       imageUrl = idImageMap[place.id];
     }
@@ -1264,19 +1687,23 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       if (name.includes('경복궁')) {
         imageUrl = '/place/kyungbok.png';
       } else if (name.includes('꽃밥') || name.includes('꽃밥에 피다')) {
-        imageUrl = '/place/kotbab.jpg';
+        imageUrl = '/place/kotbab.png';
       } else if (name.includes('광장시장')) {
-        imageUrl = '/place/kwangjang.jpg';
+        imageUrl = '/place/kwangjang.png';
       } else if (name.includes('청계천')) {
-        imageUrl = '/place/chunjpg.jpg';
+        imageUrl = '/place/chun.png';
       } else if (name.includes('명동대성당') || name.includes('명동 대성당')) {
-        imageUrl = '/place/myungdongsungjpg.jpg';
+        imageUrl = '/place/myungdong.png';
       } else if (name.includes('청수당')) {
-        imageUrl = '/place/sudang.jpg';
+        imageUrl = '/place/sudang.png';
+      } else if (name.includes('동대문디자인플라자') || name.includes('동대문 디자인 플라자') || name.includes('DDP') || name.includes('동대문역사문화공원')) {
+        imageUrl = '/place/dongdaemunddp.png';
+      } else if (name.includes('동대문')) {
+        imageUrl = '/place/dongdaemun.png';
       }
     }
 
-    return imageUrl || '/place/ddp.jpg'; // 매핑이 없으면 기본 이미지
+    return imageUrl || null; // 매핑이 없으면 null 반환
   };
 
   return (
@@ -1284,79 +1711,84 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       {/* 지도 컨테이너 - 이미지가 표시되면 숨김 */}
       <div id="map" className={`w-full h-full ${showStreetView ? 'hidden' : ''}`} />
 
-      {/* 장소별 이미지 - 이미지가 표시되면 보임 */}
-      {showStreetView && selectedPlaceForImage && (
-        <div className="absolute inset-0 w-full h-full bg-black z-50 relative">
-          {/* 닫기 버튼 */}
-          <button
-            onClick={handleCloseStreetView}
-            className="absolute top-4 right-4 z-60 px-4 py-2 bg-red-500 text-white rounded-lg shadow-lg hover:bg-red-600 transition-colors font-medium text-sm flex items-center gap-2"
-          >
-            <span>✕</span>
-            <span>{t('map.closeStreetView', currentLanguage)}</span>
-          </button>
-
-          {/* 장소명 표시 */}
-          <div className="absolute top-4 left-4 z-60 px-4 py-2 bg-black/70 text-white rounded-lg shadow-lg font-medium text-sm">
-            {selectedPlaceForImage.name}
-          </div>
-
-          {/* 장소별 이미지 */}
-          <img
-            src={getPlaceImageUrl(selectedPlaceForImage)}
-            alt={selectedPlaceForImage.name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              // 이미지 로드 실패 시 경고 메시지
-              console.warn('이미지 로드 실패:', selectedPlaceForImage.name);
-              alert(t('map.imageLoadError', currentLanguage));
-              setShowStreetView(false);
-            }}
-          />
-
-          {/* 현재 위치 마커 오버레이 */}
-          {currentLocationRef.current && (
-            <div
-              className="absolute z-50"
-              style={{
-                // 현재 위치를 이미지 중앙에 배치 (예시 위치, 실제로는 좌표에 맞게 조정 필요)
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-              }}
+      {/* 장소별 이미지 - 이미지가 표시되면 보임 (매핑된 이미지가 있을 때만) */}
+      {showStreetView && selectedPlaceForImage && getPlaceImageUrl(selectedPlaceForImage) && (() => {
+        const mappedRoute = getMappedRoute();
+        const canGoPrev = currentRouteIndex > 0;
+        const canGoNext = currentRouteIndex >= 0 && currentRouteIndex < mappedRoute.length - 1;
+        
+        return (
+          <div className="absolute inset-0 w-full h-full bg-black z-50 relative">
+            {/* 닫기 버튼 */}
+            <button
+              onClick={handleCloseStreetView}
+              className="absolute top-4 right-4 z-60 px-4 py-2 bg-red-500 text-white rounded-lg shadow-lg hover:bg-red-600 transition-colors font-medium text-sm flex items-center gap-2"
             >
-              {/* 현재 위치 마커 */}
-              <div
-                className="w-6 h-6 bg-blue-500 border-3 border-white rounded-full shadow-lg"
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  backgroundColor: '#4285F4',
-                  border: '3px solid white',
-                  borderRadius: '50%',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                }}
-              />
-              {/* 현재 위치 원형 오버레이 */}
-              <div
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-2 border-blue-500 rounded-full opacity-30"
-                style={{
-                  width: '100px',
-                  height: '100px',
-                  border: '2px solid #4285F4',
-                  borderRadius: '50%',
-                  opacity: 0.3,
-                  marginTop: '-50px',
-                  marginLeft: '-50px',
-                }}
-              />
-            </div>
-          )}
-        </div>
-      )}
+              <span>✕</span>
+              <span>{t('map.closeStreetView', currentLanguage)}</span>
+            </button>
 
-      {/* 경로확인 활성화 버튼 - 지도 왼쪽 하단, 스케일 바 위에 배치 */}
-      {route && route.length > 0 && !showStreetView && (
+            {/* 장소명 표시 */}
+            <div className="absolute top-4 left-4 z-60 px-4 py-2 bg-black/70 text-white rounded-lg shadow-lg font-medium text-sm">
+              {selectedPlaceForImage.name}
+              {mappedRoute.length > 1 && currentRouteIndex >= 0 && (
+                <span className="ml-2 text-xs opacity-70">
+                  ({currentRouteIndex + 1} / {mappedRoute.length})
+                </span>
+              )}
+            </div>
+
+            {/* 경로 이동 버튼 - 오른쪽 중앙 */}
+            {mappedRoute.length > 1 && currentRouteIndex >= 0 && (
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 z-60 flex flex-col gap-2">
+                {/* 이전 버튼 */}
+                <button
+                  onClick={handlePrevRoute}
+                  disabled={!canGoPrev}
+                  className={`px-4 py-3 rounded-lg shadow-lg transition-all font-medium text-sm flex items-center gap-2 ${
+                    canGoPrev
+                      ? 'bg-white/90 text-gray-900 hover:bg-white'
+                      : 'bg-gray-400/50 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <span>◀</span>
+                  <span>이전</span>
+                </button>
+                
+                {/* 다음 버튼 */}
+                <button
+                  onClick={handleNextRoute}
+                  disabled={!canGoNext}
+                  className={`px-4 py-3 rounded-lg shadow-lg transition-all font-medium text-sm flex items-center gap-2 ${
+                    canGoNext
+                      ? 'bg-white/90 text-gray-900 hover:bg-white'
+                      : 'bg-gray-400/50 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <span>다음</span>
+                  <span>▶</span>
+                </button>
+              </div>
+            )}
+
+            {/* 장소별 이미지 */}
+            <img
+              src={getPlaceImageUrl(selectedPlaceForImage)!}
+              alt={selectedPlaceForImage.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // 이미지 로드 실패 시 경고 메시지
+                console.warn('이미지 로드 실패:', selectedPlaceForImage.name);
+                alert(t('map.imageLoadError', currentLanguage));
+                setShowStreetView(false);
+              }}
+            />
+          </div>
+        );
+      })()}
+
+      {/* 경로확인 활성화 버튼 - 지도 왼쪽 하단, 스케일 바 위에 배치 (항상 표시) */}
+      {!showStreetView && (
         <button
           onClick={handleToggleRouteCheck}
           className={`absolute bottom-16 left-4 z-10 px-4 py-2 rounded-lg shadow-lg transition-colors font-medium text-sm ${isRouteCheckActive

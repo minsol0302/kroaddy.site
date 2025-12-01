@@ -369,27 +369,21 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
         setScreen('chatResponse');
       }, 5000);
     } else {
-      // 명시적인 검색 키워드가 있는지 확인
+      // '/'로 시작하는 메시지는 검색 키워드로 처리
       const trimmedMessage = message.trim();
-      const searchKeywords = ['검색', '찾기', 'search', 'find', 'look for', '찾아', '검색해'];
-      const hasSearchKeyword = searchKeywords.some(keyword =>
-        trimmedMessage.toLowerCase().includes(keyword.toLowerCase())
-      );
-
-      // 명시적인 검색 키워드가 있고, 메시지가 짧고(10자 이하) 장소명일 가능성이 높은 경우만 키워드 검색
-      const isShortPlaceName = trimmedMessage.length <= 10 && trimmedMessage.length > 0;
-
-      if (hasSearchKeyword && isShortPlaceName) {
-        // 키워드 검색으로 처리
-        const placeName = trimmedMessage.replace(new RegExp(searchKeywords.join('|'), 'gi'), '').trim();
-        if (placeName.length > 0) {
-          setSearchKeyword(placeName);
+      
+      if (trimmedMessage.startsWith('/')) {
+        // '/'를 제거한 나머지 부분을 검색 키워드로 사용
+        const searchKeyword = trimmedMessage.substring(1).trim();
+        
+        if (searchKeyword.length > 0) {
+          setSearchKeyword(searchKeyword);
           setScreen('chatResponse');
 
           const timeoutId = setTimeout(() => {
             const responseContent = uiLanguage === 'ko'
-              ? `"${placeName}" 검색 중...`
-              : `Searching for "${placeName}"...`;
+              ? `"${searchKeyword}" 검색 중...`
+              : `Searching for "${searchKeyword}"...`;
             setMessages(prev => [...prev, {
               role: 'assistant',
               content: responseContent
