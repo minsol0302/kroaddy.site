@@ -1,0 +1,40 @@
+# --- 프로젝트 루트 .gitignore ---
+# 시블링 폴더들의 .env 파일 무시
+
+# 모든 .env 파일 (모든 위치)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# AI 서비스
+ai.kroaddy.site/.env
+ai.kroaddy.site/**/.env
+ai.kroaddy.site/services/**/.env
+
+# Feed 서비스
+feed.kroaddy.site/.env
+feed.kroaddy.site/**/.env
+
+# RAG 서비스
+rag.kroaddy.site/.env
+rag.kroaddy.site/**/.env
+
+# API 서비스
+api.kroaddy.site/.env
+api.kroaddy.site/**/.env
+api.kroaddy.site/services/**/.env
+api.kroaddy.site/gateway/.env
+
+# Web 서비스
+www.kroaddy.site/.env
+www.kroaddy.site/**/.env
+www.kroaddy.site/.env.local
+www.kroaddy.site/.env.*.local
+
+# 모든 .kroaddy.site 폴더의 .env 파일
+*.kroaddy.site/.env
+*.kroaddy.site/**/.env
+

@@ -43,3 +43,14 @@ Thumbs.db
 
 # --- 가상환경에서 생성되는 기타 ---
 pip-selfcheck.json
+
+# --- 환경 변수 파일 ---
+.env
+.env.local
+.env.*.local
+
+# --- 시블링 폴더의 .env 파일 (참고용, 루트 .gitignore에서 관리) ---
+# ../feed.kroaddy.site/.env
+# ../rag.kroaddy.site/.env
+# ../www.kroaddy.site/.env
+# ../api.kroaddy.site/.env

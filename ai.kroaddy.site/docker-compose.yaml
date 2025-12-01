@@ -7,9 +7,11 @@ services:
     environment:
       - FEED_SERVICE_URL=http://feedservice:9003
       - RAG_SERVICE_URL=http://ragservice:9002
+      - CHATBOT_SERVICE_URL=http://chatbotservice:9004
     depends_on:
       - feedservice
       - ragservice
+      - chatbotservice
 
   feedservice:
     build: ../feed.kroaddy.site
@@ -42,3 +44,15 @@ services:
     volumes:
       - ./services/poirecommendservice/app:/app/app
     restart: unless-stopped
+
+  chatbotservice:
+    build: ./services/chatbotservice
+    ports:
+      - "9004:9004"
+    container_name: chatbotservice
+    restart: unless-stopped
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    # env_file은 선택사항 (파일이 있을 때만 사용)
+    # env_file:
+    #   - ./services/chatbotservice/.env
