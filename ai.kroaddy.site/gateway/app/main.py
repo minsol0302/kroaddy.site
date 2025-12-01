@@ -11,6 +11,7 @@ app = FastAPI(title="Gateway Service", version="1.0.0")
 # 환경 변수로 서비스 URL 설정 (Docker 네트워크 또는 로컬)
 FEED_SERVICE_URL = os.getenv("FEED_SERVICE_URL", "http://feedservice:9003")
 RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://ragservice:9002")
+CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "http://chatbotservice:9004")
 
 # CORS 설정
 app.add_middleware(
@@ -104,9 +105,46 @@ async def proxy_rag(request: Request, path: str):
             media_type=response.headers.get("content-type")
         )
 
+# 서브라우터 생성 (chatbotservice 프록시)
+chatbot_router = APIRouter()
+
+@chatbot_router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def proxy_chatbot(request: Request, path: str):
+    async with httpx.AsyncClient() as client:
+        url = f"{CHATBOT_SERVICE_URL}/{path}"
+        params = dict(request.query_params)
+        headers = dict(request.headers)
+        headers.pop("host", None)
+        
+        if request.method == "GET":
+            response = await client.get(url, params=params, headers=headers)
+        elif request.method == "POST":
+            body = await request.body()
+            response = await client.post(url, content=body, params=params, headers=headers)
+        elif request.method == "PUT":
+            body = await request.body()
+            response = await client.put(url, content=body, params=params, headers=headers)
+        elif request.method == "DELETE":
+            response = await client.delete(url, params=params, headers=headers)
+        elif request.method == "PATCH":
+            body = await request.body()
+            response = await client.patch(url, content=body, params=params, headers=headers)
+        elif request.method == "OPTIONS":
+            response = await client.options(url, params=params, headers=headers)
+        else:
+            return Response(status_code=405)
+        
+        return Response(
+            content=response.content,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.headers.get("content-type")
+        )
+
 # 서브라우터를 메인 라우터에 연결
 main_router.include_router(feed_router, prefix="/feed", tags=["feed"])
 main_router.include_router(rag_router, prefix="/rag", tags=["rag"])
+main_router.include_router(chatbot_router, prefix="/chatbot", tags=["chatbot"])
 
 # Agent 라우터 추가 (내부 서비스)
 app.include_router(agent_router)
