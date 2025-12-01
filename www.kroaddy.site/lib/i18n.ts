@@ -517,6 +517,85 @@ export const translations: Translations = {
         'zh-CN': '在请求头中包含身份验证令牌',
         'zh-TW': '在請求標頭中包含身份驗證令牌',
     },
+    // 카테고리 버튼
+    'chatbot.category.kpop': {
+        'ko': 'K-POP',
+        'en': 'K-POP',
+        'ja': 'K-POP',
+        'zh-CN': 'K-POP',
+        'zh-TW': 'K-POP',
+    },
+    'chatbot.category.nature': {
+        'ko': '자연',
+        'en': 'Nature',
+        'ja': '自然',
+        'zh-CN': '自然',
+        'zh-TW': '自然',
+    },
+    'chatbot.category.activity': {
+        'ko': '액티비티',
+        'en': 'Activity',
+        'ja': 'アクティビティ',
+        'zh-CN': '活动',
+        'zh-TW': '活動',
+    },
+    'chatbot.category.history': {
+        'ko': '역사',
+        'en': 'History',
+        'ja': '歴史',
+        'zh-CN': '历史',
+        'zh-TW': '歷史',
+    },
+    'chatbot.category.museum': {
+        'ko': '박물관',
+        'en': 'Museum',
+        'ja': '博物館',
+        'zh-CN': '博物馆',
+        'zh-TW': '博物館',
+    },
+    // 챗봇 응답 메시지
+    'chatbot.typing': {
+        'ko': '작성중...',
+        'en': 'Typing...',
+        'ja': '入力中...',
+        'zh-CN': '输入中...',
+        'zh-TW': '輸入中...',
+    },
+    'chatbot.nearby.response': {
+        'ko': '당연하지! 너의 현재 위치는 동대문 디자인 플라자야. 내가 너의 정보에 맞춰서 장소를 추천해줄게.',
+        'en': 'Of course! Your current location is Dongdaemun Design Plaza. I\'ll recommend places that match your preferences.',
+        'ja': 'もちろん！あなたの現在地は東大門デザインプラザです。あなたの情報に合わせて場所を推薦します。',
+        'zh-CN': '当然！您当前的位置是东大门设计广场。我会根据您的信息推荐地点。',
+        'zh-TW': '當然！您當前的位置是東大門設計廣場。我會根據您的資訊推薦地點。',
+    },
+    'chatbot.nearby.selectRoute': {
+        'ko': '이 경로를 선택할래?',
+        'en': 'Would you like to select this route?',
+        'ja': 'このルートを選択しますか？',
+        'zh-CN': '您想选择这条路线吗？',
+        'zh-TW': '您想選擇這條路線嗎？',
+    },
+    'chatbot.museum.response': {
+        'ko': '🏛️ 서울 역사 박물관 (Seoul Museum of History)\n\n서울이 어떻게 지금의 도시가 되었는지 한눈에 볼 수 있는 박물관이야. 조선시대 한양부터 현대 서울까지 변화 과정을 스토리처럼 정리해놔서 외국인들도 이해하기 쉬워. 도시의 과거·현재 감성을 동시에 느낄 수 있는 곳!\n\n---\n\n🇰🇷 대한민국 역사 박물관 (National Museum of Korean Contemporary History)\n\n한국의 현대사만 집중적으로 보여주는 곳이야. 전쟁, 산업화, 민주화 같은 굵직한 사건들을 쉽고 생생하게 구성해놔서, 한국 사회가 어떻게 발전해 왔는지 빠르게 이해할 수 있어. 외국인 방문객들에게 특히 인기 많아.\n\n---\n\n👑 국립 고궁 박물관 (National Palace Museum of Korea)\n\n조선 왕실의 문화와 유물이 가득한 박물관이야. 왕이 쓰던 생활도구부터 화려한 의식용 물품까지 전시돼 있어서, 궁궐 문화에 관심 있는 사람들은 완전 좋아할 스타일! 경복궁 바로 옆이라 동선도 최고야.\n\n---\n\n🏡 국립 민속 박물관 (National Folk Museum of Korea)\n\n한국인의 옛날 생활 문화를 재현해둔 박물관이야. 전통 의식주, 풍습, 도구들이 진짜처럼 꾸며져 있어서 시간여행 온 느낌! 한국인의 일상과 전통을 깊게 알고 싶은 외국인들에게 완전 찰떡이야.\n\n---\n\n🏛️ 국립 중앙 박물관 (National Museum of Korea)\n\n한국에서 가장 큰 국립 박물관으로, 선사시대부터 조선까지 한국 역사를 통째로 보여줘. 규모도 크고 전시품도 세계급이라 한 번 들어가면 시간 순삭! 한국 역사와 예술을 폭넓게 이해하고 싶은 사람들은 꼭 가야 하는 명소야.',
+        'en': '🏛️ Seoul Museum of History\n\nA museum where you can see at a glance how Seoul became the city it is today. It organizes the transformation process from Hanyang in the Joseon Dynasty to modern Seoul like a story, making it easy for foreigners to understand. A place where you can feel both the past and present of the city!\n\n---\n\n🇰🇷 National Museum of Korean Contemporary History\n\nA place that focuses exclusively on Korea\'s modern history. Major events such as war, industrialization, and democratization are organized in an easy and vivid way, so you can quickly understand how Korean society has developed. It\'s especially popular with foreign visitors.\n\n---\n\n👑 National Palace Museum of Korea\n\nA museum full of Joseon royal culture and artifacts. From daily tools used by kings to splendid ceremonial items, it\'s perfect for those interested in palace culture! It\'s right next to Gyeongbokgung Palace, so the route is perfect.\n\n---\n\n🏡 National Folk Museum of Korea\n\nA museum that recreates the traditional lifestyle of Koreans. Traditional clothing, food, housing, customs, and tools are arranged so realistically that it feels like time travel! Perfect for foreigners who want to deeply understand Korean daily life and traditions.\n\n---\n\n🏛️ National Museum of Korea\n\nKorea\'s largest national museum, showing Korean history from prehistoric times to the Joseon Dynasty. It\'s large in scale and has world-class exhibits, so time flies once you enter! A must-visit for those who want to broadly understand Korean history and art.',
+        'ja': '🏛️ ソウル歴史博物館\n\nソウルがどのように現在の都市になったか一目で見ることができる博物館です。朝鮮時代の漢陽から現代のソウルまでの変化過程を物語のように整理しており、外国人も理解しやすいです。都市の過去と現在の感性を同時に感じられる場所です！\n\n---\n\n🇰🇷 大韓民国歴史博物館\n\n韓国の現代史のみを集中的に紹介する場所です。戦争、産業化、民主化などの大きな出来事を簡単で生き生きと構成しており、韓国社会がどのように発展してきたか素早く理解できます。外国人訪問客に特に人気があります。\n\n---\n\n👑 国立古宮博物館\n\n朝鮮王室の文化と遺物が満載の博物館です。王が使っていた生活道具から華やかな儀式用の物品まで展示されており、宮殿文化に興味のある人には完璧なスタイルです！景福宮のすぐ隣なので動線も最高です。\n\n---\n\n🏡 国立民俗博物館\n\n韓国人の昔の生活文化を再現した博物館です。伝統的な衣食住、風習、道具が本物のように配置されており、タイムトラベルに来たような感覚です！韓国人の日常と伝統を深く知りたい外国人には完璧です。\n\n---\n\n🏛️ 国立中央博物館\n\n韓国最大の国立博物館で、先史時代から朝鮮まで韓国の歴史を丸ごと見せてくれます。規模も大きく展示品も世界級で、一度入ると時間が過ぎるのが早いです！韓国の歴史と芸術を広く理解したい人は必ず訪れるべき名所です。',
+        'zh-CN': '🏛️ 首尔历史博物馆\n\n一个可以一目了然地看到首尔如何成为今天这座城市的博物馆。它像故事一样整理了从朝鲜时代的汉阳到现代首尔的转变过程，让外国人很容易理解。一个可以同时感受城市过去和现在的地方！\n\n---\n\n🇰🇷 大韩民国历史博物馆\n\n一个专门展示韩国现代史的地方。战争、工业化、民主化等重大事件以简单生动的方式组织，可以快速了解韩国社会是如何发展的。特别受外国游客欢迎。\n\n---\n\n👑 国立古宫博物馆\n\n一个充满朝鲜王室文化和文物的博物馆。从国王使用的日常工具到华丽的仪式用品，对宫殿文化感兴趣的人来说是完美的！就在景福宫旁边，所以路线也很完美。\n\n---\n\n🏡 国立民俗博物馆\n\n一个重现韩国人传统生活文化的博物馆。传统衣食住、习俗、工具布置得如此逼真，感觉就像时光旅行！非常适合想要深入了解韩国日常生活和传统的外国人。\n\n---\n\n🏛️ 国立中央博物馆\n\n韩国最大的国立博物馆，展示从史前时代到朝鲜时代的韩国历史。规模大，展品世界级，一进入就感觉时间飞逝！想要广泛了解韩国历史和艺术的人必访的名胜。',
+        'zh-TW': '🏛️ 首爾歷史博物館\n\n一個可以一目了然地看到首爾如何成為今天這座城市的博物館。它像故事一樣整理了從朝鮮時代的漢陽到現代首爾的轉變過程，讓外國人很容易理解。一個可以同時感受城市過去和現在的地方！\n\n---\n\n🇰🇷 大韓民國歷史博物館\n\n一個專門展示韓國現代史的地方。戰爭、工業化、民主化等重大事件以簡單生動的方式組織，可以快速了解韓國社會是如何發展的。特別受外國遊客歡迎。\n\n---\n\n👑 國立古宮博物館\n\n一個充滿朝鮮王室文化和文物的博物館。從國王使用的日常工具到華麗的儀式用品，對宮殿文化感興趣的人來說是完美的！就在景福宮旁邊，所以路線也很完美。\n\n---\n\n🏡 國立民俗博物館\n\n一個重現韓國人傳統生活文化的博物館。傳統衣食住、習俗、工具佈置得如此逼真，感覺就像時光旅行！非常適合想要深入了解韓國日常生活和傳統的外國人。\n\n---\n\n🏛️ 國立中央博物館\n\n韓國最大的國立博物館，展示從史前時代到朝鮮時代的韓國歷史。規模大，展品世界級，一進入就感覺時間飛逝！想要廣泛了解韓國歷史和藝術的人必訪的名勝。',
+    },
+    'chatbot.recommend.response': {
+        'ko': '이 곳은 어때? 리뷰도 좋고! 인기가 많은 식당이야!\n\n---\n\n## 🌸 꽃밥에 피다 북촌 친환경 그로서란트\n\n전통 가옥 분위기 속에서 건강하고 자연 친화적인 식재료를 판매하고 식사도 가능한 공간이다. 북촌의 한옥 감성과 로컬 재료 중심의 식단이 외국인들에게 특히 매력적이야\n\n---\n\n**최적의 경로를 추천해줄까?**',
+        'en': 'How about this place? Great reviews! It\'s a popular restaurant!\n\n---\n\n## 🌸 Kkotbap-e Pida Bukchon Eco Grocerant\n\nA space where you can buy healthy and eco-friendly ingredients and have meals in a traditional house atmosphere. The hanok sensibility of Bukchon and the local ingredient-focused menu are especially attractive to foreigners.\n\n---\n\n**Would you like me to recommend the optimal route?**',
+        'ja': 'この場所はどうですか？レビューも良いです！人気のあるレストランです！\n\n---\n\n## 🌸 コッパプエピダ 北村エコグロサラン\n\n伝統的な家の雰囲気の中で健康的で自然に優しい食材を販売し、食事もできる空間です。北村の韓屋の感性とローカル食材中心のメニューが外国人に特に魅力的です。\n\n---\n\n**最適なルートを推薦しましょうか？**',
+        'zh-CN': '这个地方怎么样？评价很好！这是一家受欢迎的餐厅！\n\n---\n\n## 🌸 花饭绽放 北村环保杂货餐厅\n\n一个可以在传统房屋氛围中销售健康环保食材并可以就餐的空间。北村的韩屋感性和以本地食材为中心的菜单对外国人特别有吸引力。\n\n---\n\n**您想让我推荐最佳路线吗？**',
+        'zh-TW': '這個地方怎麼樣？評價很好！這是一家受歡迎的餐廳！\n\n---\n\n## 🌸 花飯綻放 北村環保雜貨餐廳\n\n一個可以在傳統房屋氛圍中銷售健康環保食材並可以就餐的空間。北村的韓屋感性和以本地食材為中心的菜單對外國人特別有吸引力。\n\n---\n\n**您想讓我推薦最佳路線嗎？**',
+    },
+    'chatbot.yes.response': {
+        'ko': '그래 좋아 네가 이동하면서 장소의 숨겨진 이야기를 알려줄게! 도움이 필요하면 언제든지 물어봐!',
+        'en': 'Great! I\'ll tell you the hidden stories of the places as you move around! If you need help, just ask anytime!',
+        'ja': 'いいね！移動しながら場所の隠された物語を教えてあげる！助けが必要ならいつでも聞いてね！',
+        'zh-CN': '太好了！我会在你移动时告诉你这些地方的隐藏故事！如果需要帮助，随时问我！',
+        'zh-TW': '太好了！我會在你移動時告訴你這些地方的隱藏故事！如果需要幫助，隨時問我！',
+    },
 };
 
 /**

@@ -3,15 +3,16 @@
 "use client";
 
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar } from "../../components/Sidebar";
 import { Chatbot } from "../../components/Chatbot";
 import KakaoMap from "../../components/KakaoMap";
 import { PlacePopup } from "../../components/PlacePopup";
 import { WeatherWidget } from "../../components/WeatherWidget";
-import { Message, Location } from "../../lib/types";
+import { Message, Location, LanguageCode } from "../../lib/types";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../../components/ui/resizable";
 import { keywordPlaceMap } from "../../lib/keywordPlaces";
+import { t, getCurrentLanguage } from "../../lib/i18n";
 
 
 export type Screen = 'initial' | 'chatResponse' | 'placeDetail';
@@ -25,23 +26,39 @@ export default function Home() {
   const [showChatbot, setShowChatbot] = useState(true);
   const [mapResetKey, setMapResetKey] = useState<number>(0);
   const [drawRouteKey, setDrawRouteKey] = useState<number>(0);
+  const [uiLanguage, setUiLanguage] = useState<LanguageCode>(getCurrentLanguage());
+
+  // 언어 변경 감지
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      setUiLanguage(getCurrentLanguage());
+    };
+
+    window.addEventListener('languageChanged', handleLanguageChange as EventListener);
+    return () => {
+      window.removeEventListener('languageChanged', handleLanguageChange as EventListener);
+    };
+  }, []);
 
   const handleSendMessage = (message: string) => {
     const newMessages = [...messages, { role: 'user' as const, content: message }];
     setMessages(newMessages);
 
     // '근처' 키워드 처리
-    if (message.includes('근처')) {
+    if (message.includes('근처') || message.toLowerCase().includes('nearby')) {
       // 작성중 메시지 추가
       const typingMessage: Message = {
         role: 'assistant',
-        content: '작성중...'
+        content: t('chatbot.typing', uiLanguage)
       };
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
       setTimeout(() => {
-        const responseContent = `당연하지! 너의 현재 위치는 동대문 디자인 플라자야. 내가 너의 정보에 맞춰서 장소를 추천해줄게.
+        // 언어별로 다른 응답 제공
+        let responseContent = '';
+        if (uiLanguage === 'ko') {
+          responseContent = `${t('chatbot.nearby.response', uiLanguage)}
 
 ---
 
@@ -93,7 +110,63 @@ export default function Home() {
 
 ---
 
-**이 경로를 선택할래?**`;
+**${t('chatbot.nearby.selectRoute', uiLanguage)}**`;
+        } else {
+          // 영어 및 기타 언어용 간단한 응답
+          responseContent = `${t('chatbot.nearby.response', uiLanguage)}
+
+---
+
+## 🏛️ Gyeongbokgung Palace
+
+The best palace in Seoul to experience Korean traditional culture. The grand palace gates and buildings used by kings are truly magnificent, and the Gyeonghoeru pond is beautiful for photos. A must-visit if you're interested in Korean history or traditional architecture!
+
+---
+
+## 🌊 Cheonggyecheon Stream
+
+A walking path in the middle of the city where you can walk while listening to the sound of flowing water. There are beautiful bridges and sculptures throughout. Especially beautiful at night with lighting.
+
+---
+
+## 🏪 Gwangjang Market
+
+One of Seoul's oldest traditional markets, a place foreigners visit to truly experience Korean local atmosphere. Not just for food, but a space where you can experience "Korean daily market culture" with hanbok, fabric, and vintage shops.
+
+---
+
+## ⛪ Myeongdong Cathedral
+
+One of Korea's most famous Catholic cathedrals. The Gothic-style building is very beautiful, and it's perfect for a quick visit while shopping in Myeongdong. A historically significant place.
+
+---
+
+## 🥗 Vegan Insa Restaurant
+
+A vegan restaurant near Insadong. You can try vegan dishes in Korean traditional style, great even if you're not vegan. Popular with foreign travelers!
+
+---
+
+## 🍽️ Osegyehyang
+
+One of the most famous vegan restaurants in Insadong. Modern temple food-style dishes that are tasty and healthy. Highly recommended if you have vegan friends.
+
+---
+
+## ☕ Cafe Soodal
+
+A quiet and comfortable cafe with Korean-style desserts. You can feel the hanok sensibility and enjoy Seoul's traditional atmosphere more comfortably.
+
+---
+
+## 🍵 Cheongsudang
+
+A hanok-style cafe that's very popular these days. Beautiful Eastern interior and well-crafted desserts. A place foreigners love for both Korean traditional atmosphere and modern sensibility.
+
+---
+
+**${t('chatbot.nearby.selectRoute', uiLanguage)}**`;
+        }
 
         const response: Message = {
           role: 'assistant',
@@ -113,43 +186,17 @@ export default function Home() {
     }
 
     // '박물관' 키워드 처리
-    if (message.includes('박물관')) {
+    if (message.includes('박물관') || message.toLowerCase().includes('museum')) {
       // 작성중 메시지 추가
       const typingMessage: Message = {
         role: 'assistant',
-        content: '작성중...'
+        content: t('chatbot.typing', uiLanguage)
       };
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
       setTimeout(() => {
-        const responseContent = `🏛️ 서울 역사 박물관 (Seoul Museum of History)
-
-서울이 어떻게 지금의 도시가 되었는지 한눈에 볼 수 있는 박물관이야. 조선시대 한양부터 현대 서울까지 변화 과정을 스토리처럼 정리해놔서 외국인들도 이해하기 쉬워. 도시의 과거·현재 감성을 동시에 느낄 수 있는 곳!
-
----
-
-🇰🇷 대한민국 역사 박물관 (National Museum of Korean Contemporary History)
-
-한국의 현대사만 집중적으로 보여주는 곳이야. 전쟁, 산업화, 민주화 같은 굵직한 사건들을 쉽고 생생하게 구성해놔서, 한국 사회가 어떻게 발전해 왔는지 빠르게 이해할 수 있어. 외국인 방문객들에게 특히 인기 많아.
-
----
-
-👑 국립 고궁 박물관 (National Palace Museum of Korea)
-
-조선 왕실의 문화와 유물이 가득한 박물관이야. 왕이 쓰던 생활도구부터 화려한 의식용 물품까지 전시돼 있어서, 궁궐 문화에 관심 있는 사람들은 완전 좋아할 스타일! 경복궁 바로 옆이라 동선도 최고야.
-
----
-
-🏡 국립 민속 박물관 (National Folk Museum of Korea)
-
-한국인의 옛날 생활 문화를 재현해둔 박물관이야. 전통 의식주, 풍습, 도구들이 진짜처럼 꾸며져 있어서 시간여행 온 느낌! 한국인의 일상과 전통을 깊게 알고 싶은 외국인들에게 완전 찰떡이야.
-
----
-
-🏛️ 국립 중앙 박물관 (National Museum of Korea)
-
-한국에서 가장 큰 국립 박물관으로, 선사시대부터 조선까지 한국 역사를 통째로 보여줘. 규모도 크고 전시품도 세계급이라 한 번 들어가면 시간 순삭! 한국 역사와 예술을 폭넓게 이해하고 싶은 사람들은 꼭 가야 하는 명소야.`;
+        const responseContent = t('chatbot.museum.response', uiLanguage);
 
         const response: Message = {
           role: 'assistant',
@@ -169,27 +216,17 @@ export default function Home() {
     }
 
     // '추천' 키워드 처리
-    if (message.includes('추천')) {
+    if (message.includes('추천') || message.toLowerCase().includes('recommend')) {
       // 작성중 메시지 추가
       const typingMessage: Message = {
         role: 'assistant',
-        content: '작성중...'
+        content: t('chatbot.typing', uiLanguage)
       };
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
       setTimeout(() => {
-        const responseContent = `이 곳은 어때? 리뷰도 좋고! 인기가 많은 식당이야!
-
----
-
-## 🌸 꽃밥에 피다 북촌 친환경 그로서란트
-
-전통 가옥 분위기 속에서 건강하고 자연 친화적인 식재료를 판매하고 식사도 가능한 공간이다. 북촌의 한옥 감성과 로컬 재료 중심의 식단이 외국인들에게 특히 매력적이야
-
----
-
-**최적의 경로를 추천해줄까?**`;
+        const responseContent = t('chatbot.recommend.response', uiLanguage);
 
         const response: Message = {
           role: 'assistant',
@@ -223,17 +260,17 @@ export default function Home() {
     }
 
     // '응' 키워드 처리
-    if (message.includes('응')) {
+    if (message.includes('응') || message.toLowerCase().includes('yes') || message.toLowerCase().includes('ok')) {
       // 작성중 메시지 추가
       const typingMessage: Message = {
         role: 'assistant',
-        content: '작성중...'
+        content: t('chatbot.typing', uiLanguage)
       };
       setMessages([...newMessages, typingMessage]);
       setScreen('chatResponse');
 
       setTimeout(() => {
-        const responseContent = `그래 좋아 네가 이동하면서 장소의 숨겨진 이야기를 알려줄게! 도움이 필요하면 언제든지 물어봐!`;
+        const responseContent = t('chatbot.yes.response', uiLanguage);
 
         const response: Message = {
           role: 'assistant',
@@ -308,7 +345,9 @@ export default function Home() {
         setTimeout(() => {
           const response: Message = {
             role: 'assistant',
-            content: `Searching for "${trimmedMessage}"...`
+            content: uiLanguage === 'ko'
+              ? `"${trimmedMessage}" 검색 중...`
+              : `Searching for "${trimmedMessage}"...`
           };
           setMessages([...newMessages, response]);
         }, 300);
@@ -317,15 +356,18 @@ export default function Home() {
         // 작성중 메시지 추가
         const typingMessage: Message = {
           role: 'assistant',
-          content: '작성중...'
+          content: t('chatbot.typing', uiLanguage)
         };
         setMessages([...newMessages, typingMessage]);
         setScreen('chatResponse');
 
         setTimeout(() => {
+          const responseContent = uiLanguage === 'ko'
+            ? `메시지를 받았습니다: "${message}". 이것은 임시 응답입니다.`
+            : `I received your message: "${message}". This is a placeholder response.`;
           const response: Message = {
             role: 'assistant',
-            content: `I received your message: "${message}". This is a placeholder response.`
+            content: responseContent
           };
           setMessages([...newMessages, response]);
         }, 5000);
