@@ -6,7 +6,8 @@ aiohttp
 beautifulsoup4
 lxml
 html5lib
-Selenium
-Playwright
+selenium
+playwright
 apscheduler==3.10.4
+geopy
 

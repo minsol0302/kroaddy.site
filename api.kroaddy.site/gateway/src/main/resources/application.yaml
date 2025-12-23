@@ -12,23 +12,64 @@ spring:
           routes:
             # Auth-service 라우팅 (모든 /api/auth/** 경로)
             - id: auth-service
-              uri: http://authservice:8081
+              uri: http://auth-service:8081
               predicates:
                 - Path=/api/auth/**
 
             # Log-service 라우팅 (모든 /api/log/** 경로)
             - id: log-service
-              uri: http://authservice:8081
+              uri: http://auth-service:8081
               predicates:
                 - Path=/api/log/**
 
-            # 루트 경로 - Swagger UI로 리다이렉트
+            # ML-service 라우팅 (모든 /api/ml/** 경로)
+            - id: ml-service
+              uri: ${ML_SERVICE_URL:http://ml-service:9010}
+              predicates:
+                - Path=/api/ml/**
+              filters:
+                - StripPrefix=2  # /api/ml 제거하여 ml-service로 전달
+
+            # === Python 서비스 라우팅 ===
+            # Feed 서비스 (Python)
+            - id: feed-service
+              uri: ${FEED_SERVICE_URL:http://feed-service:9003}
+              predicates:
+                - Path=/api/feed/**
+              filters:
+                - StripPrefix=2  # /api/feed 제거
+
+            # RAG 서비스 (Python)
+            - id: rag-service
+              uri: ${RAG_SERVICE_URL:http://rag-service:9002}
+              predicates:
+                - Path=/api/rag/**
+              filters:
+                - StripPrefix=2  # /api/rag 제거
+
+            # Chatbot 서비스 (Python)
+            - id: chatbot-service
+              uri: ${CHATBOT_SERVICE_URL:http://chatbot-service:9004}
+              predicates:
+                - Path=/api/chatbot/**
+              filters:
+                - StripPrefix=2  # /api/chatbot 제거
+
+            # Agent 서비스 (Python Gateway로 프록시)
+            - id: agent-service
+              uri: ${AGENT_SERVICE_URL:http://agent-service:9000}
+              predicates:
+                - Path=/api/agent/**
+              filters:
+                - StripPrefix=2  # /api/agent 제거
+
+            # 루트 경로를 /docs로 리다이렉트
             - id: root-redirect
               uri: http://localhost:8080
               predicates:
                 - Path=/
               filters:
-                - SetPath=/docs
+                - RedirectTo=302, /docs
   data:
     redis:
       host: ${REDIS_HOST:localhost}

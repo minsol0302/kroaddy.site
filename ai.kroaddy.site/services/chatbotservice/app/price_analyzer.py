@@ -6,10 +6,34 @@ from openai import OpenAI
 import os
 from typing import List, Dict, Optional
 import logging
+from pathlib import Path
+from dotenv import load_dotenv
 
-# 로깅 설정
+# 로깅 설정 (먼저 설정)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# 루트 디렉토리의 .env 파일 로드
+# 프로젝트 루트까지 상위로 이동하여 .env 파일 찾기
+current_dir = Path(__file__).parent
+root_dir = current_dir
+env_loaded = False
+for _ in range(5):  # 최대 5단계까지 상위 디렉토리 탐색
+    env_file = root_dir / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        logger.info(f"✓ .env 파일 로드 완료: {env_file}")
+        env_loaded = True
+        break
+    parent = root_dir.parent
+    if parent == root_dir:  # 더 이상 상위 디렉토리가 없으면 중단
+        break
+    root_dir = parent
+
+if not env_loaded:
+    # .env 파일을 찾지 못한 경우 현재 디렉토리와 상위 디렉토리에서 시도
+    load_dotenv()  # 기본적으로 현재 디렉토리와 상위 디렉토리에서 .env 찾기
+    logger.info("기본 경로에서 .env 파일 로드 시도")
 
 # 클라이언트 생성 (환경변수에서 키 자동 인식)
 # API 키가 없으면 None으로 설정하고, 실제 사용 시에만 에러 발생

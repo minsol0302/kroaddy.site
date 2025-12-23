@@ -1,274 +1,386 @@
 # ai.kroaddy.site 프로젝트 구조
 
 ## 개요
-이 프로젝트는 마이크로서비스 아키텍처를 기반으로 한 AI 서비스 플랫폼입니다. FastAPI를 사용하여 여러 서비스를 구성하고, Docker Compose로 오케스트레이션합니다.
 
-## 프로젝트 구조
+`ai.kroaddy.site`는 마이크로서비스 아키텍처를 기반으로 한 AI 서비스 플랫폼입니다. FastAPI를 사용하여 각 서비스를 독립적으로 운영하며, Gateway 서비스를 통해 통합 관리합니다.
+
+## 전체 구조
 
 ```
 ai.kroaddy.site/
-├── docker-compose.yaml          # 서비스 오케스트레이션 설정
-├── Dockerfile                   # 루트 Dockerfile (사용 안 함)
-├── requirements.txt             # 루트 requirements (사용 안 함)
-├── gateway/                     # API Gateway 서비스
+├── gateway/              # API Gateway 서비스
+├── services/             # 마이크로서비스들
+│   ├── authservice/      # 인증 서비스
+│   ├── chatbotservice/   # 챗봇 서비스 (RAG 포함)
+│   ├── crawlerservice/   # 크롤링 서비스
+│   ├── mlservice/        # 머신러닝 서비스
+│   ├── common/           # 공통 모듈 (비어있음)
+│   └── transformer/      # 변환 서비스 (비어있음)
+├── requirements.txt      # 루트 레벨 의존성
+├── Dockerfile            # 루트 레벨 Dockerfile
+└── .gitignore           # Git 무시 파일
+```
+
+---
+
+## 1. Gateway 서비스
+
+**위치**: `gateway/`  
+**포트**: 9000  
+**역할**: API Gateway 및 프록시 서버
+
+### 구조
+
+```
+gateway/
+├── app/
+│   ├── main.py              # FastAPI 메인 애플리케이션
+│   └── agent/               # Agent 서비스 모듈
+│       ├── main.py          # Agent 라우터
+│       ├── llm_api.py       # LLM API 클라이언트
+│       ├── sllm_db.py       # SLLM 데이터베이스 관리
+│       ├── __init__.py
+│       └── README.md
+├── Dockerfile
+└── requirements.txt
+```
+
+### 주요 기능
+
+- **프록시 서비스**: Feed, RAG, Chatbot 서비스로 요청 프록시
+- **Agent 서비스**: LLM API 통합 및 SLLM 관리
+- **CORS 처리**: 모든 서비스에 대한 CORS 미들웨어 제공
+
+### 환경 변수
+
+- `FEED_SERVICE_URL`: Feed 서비스 URL (기본값: `http://feedservice:9003`)
+- `RAG_SERVICE_URL`: RAG 서비스 URL (기본값: `http://ragservice:9002`)
+- `CHATBOT_SERVICE_URL`: Chatbot 서비스 URL (기본값: `http://chatbotservice:9004`)
+
+---
+
+## 2. Services
+
+### 2.1 Auth Service
+
+**위치**: `services/authservice/`  
+**역할**: 인증 및 권한 관리
+
+```
+authservice/
+├── app/
+│   ├── main.py          # FastAPI 애플리케이션
+│   └── __init__.py
+└── Dockerfile
+```
+
+### 2.2 Chatbot Service
+
+**위치**: `services/chatbotservice/`  
+**역할**: 가격 분석 챗봇 및 대화형 AI 서비스
+
+```
+chatbotservice/
+├── app/
+│   ├── main.py              # FastAPI 메인 애플리케이션
+│   ├── config.py            # 설정 파일
+│   ├── pl.py                # PL (Price List?) 모듈
+│   ├── price_analyzer.py    # 가격 분석 모듈
+│   └── __init__.py
+├── rag.kroaddy.site/        # RAG 서비스 (별도 서브서비스)
 │   ├── app/
-│   │   └── main.py             # Gateway 메인 애플리케이션
-│   ├── Dockerfile              # Gateway Docker 이미지 설정
-│   └── requirements.txt        # Gateway 의존성
-└── services/                    # 마이크로서비스들
-    ├── crawlerservice/         # 크롤링 서비스
-    │   ├── app/
-    │   │   ├── main.py        # Crawler 서비스 메인 애플리케이션
-    │   │   ├── bs_demo/       # BeautifulSoup 기반 크롤러
-    │   │   │   ├── aggregate.py      # 뉴스 통합 및 위험 분석
-    │   │   │   ├── bugsmusic.py      # Bugs Music 차트 크롤링
-    │   │   │   ├── daum.py           # Daum 뉴스 크롤링
-    │   │   │   ├── google.py         # Google 뉴스 크롤링
-    │   │   │   ├── hazard_analyzer.py # 위험도 분석
-    │   │   │   └── naver.py          # Naver 뉴스 크롤링
-    │   │   └── sel_demo/      # Selenium 기반 크롤러
-    │   │       └── danawa.py         # 다나와 제품 크롤링
-    │   ├── Dockerfile          # Crawler 서비스 Docker 이미지 설정
-    │   └── requirements.txt    # Crawler 서비스 의존성
-    ├── chatbotservice/         # 챗봇 서비스
-    │   ├── app/
-    │   │   └── price_analyzer.py  # 가격 분석 모듈 (현재 비어있음)
-    │   ├── Dockerfile          # Chatbot 서비스 Docker 이미지 설정
-    │   └── requirements.txt    # Chatbot 서비스 의존성
-    └── poirecommendservice/    # POI 추천 서비스
-        ├── app/
-        │   ├── main.py         # POI 추천 서비스 메인 애플리케이션
-        │   ├── model_runner.py # 모델 실행 및 결과 처리
-        │   ├── inputdata/      # 입력 데이터
-        │   │   └── tn_visit_area_info_E.csv  # 방문 지역 정보 데이터
-        │   ├── models/         # 모델 파일
-        │   │   ├── E_capital_model.py  # 추천 모델 스크립트
-        │   │   └── svd_model_E.pkl     # 학습된 SVD 모델 파일
-        │   ├── outputs/        # 출력 결과
-        │   │   └── E_recommendations.csv  # 추천 결과 CSV
-        │   └── preprocessed/   # 전처리된 데이터
-        │       └── dfE.csv     # 전처리된 데이터프레임
-        ├── Dockerfile          # POI 추천 서비스 Docker 이미지 설정
-        └── requirements.txt    # POI 추천 서비스 의존성
+│   │   ├── main.py          # RAG FastAPI 애플리케이션
+│   │   ├── config.py
+│   │   ├── embeddings.py    # 임베딩 생성
+│   │   ├── rag_engine.py    # RAG 엔진
+│   │   └── vector_store.py  # 벡터 스토어 관리
+│   ├── data/                # 데이터 디렉토리
+│   ├── vector_db/           # 벡터 데이터베이스
+│   │   └── chroma_db/       # ChromaDB 저장소
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── README.md
+├── Dockerfile
+├── requirements.txt
+└── README.md
 ```
 
-## 서비스 상세
+### 주요 기능
 
-### 1. Gateway Service (포트: 9000)
-**위치**: `gateway/app/main.py`
+- **가격 분석**: 상품 가격 분석 및 바가지 탐지
+- **대화형 챗봇**: 사용자와의 대화 처리
+- **RAG (Retrieval-Augmented Generation)**: 벡터 검색 기반 답변 생성
 
-**역할**:
-- API Gateway 역할로 모든 외부 요청의 진입점
-- CORS 설정 및 요청 라우팅
-- Crawler 서비스로의 프록시 역할
+### 문서
 
-**주요 기능**:
-- 루트 엔드포인트: `/` - 헬스체크
-- Crawler 프록시: `/crawler/{path}` - 모든 HTTP 메서드를 crawlerservice로 프록시
+- `API_KEY_TROUBLESHOOTING.md`: API 키 문제 해결 가이드
+- `ENV_SETUP.md`: 환경 설정 가이드
+- `FRONTEND_INTEGRATION.md`: 프론트엔드 통합 가이드
+- `GATEWAY_CONNECTION.md`: Gateway 연결 가이드
+- `USER_PROFILE_INTEGRATION.md`: 사용자 프로필 통합 가이드
 
-**의존성**:
-- `fastapi==0.104.1`
-- `uvicorn==0.24.0`
-- `httpx==0.25.0`
+### 2.3 Crawler Service
 
-**실행 명령**:
+**위치**: `services/crawlerservice/`  
+**역할**: 웹 크롤링 및 데이터 수집
+
+```
+crawlerservice/
+├── app/
+│   ├── main.py              # FastAPI 메인 애플리케이션
+│   ├── save/                # 저장 디렉토리
+│   ├── bs_demo/             # BeautifulSoup 데모
+│   │   ├── overcharge_detection/  # 바가지 탐지
+│   │   │   └── kakao/       # 카카오맵 크롤러
+│   │   │       ├── router.py      # API 라우터
+│   │   │       ├── crawler.py     # 크롤러 통합 모듈
+│   │   │       ├── search_kakao.py # 카카오맵 검색
+│   │   │       ├── detail.py      # 상세 정보 추출
+│   │   │       └── __init__.py
+│   │   └── risk_detection/  # 위험 탐지
+│   │       ├── aggregate.py       # 뉴스 집계
+│   │       ├── hazard_analyzer.py # 위험 분석
+│   │       ├── bugsmusic.py       # 벅스뮤직 크롤러
+│   │       ├── naver.py           # 네이버 크롤러
+│   │       ├── daum.py            # 다음 크롤러
+│   │       └── google.py          # 구글 크롤러
+│   └── sel_demo/            # Selenium 데모
+│       └── danawa.py        # 다나와 크롤러
+├── feed.kroaddy.site/       # Feed 서비스 (별도 서브서비스)
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── bs_demo/         # 위험 탐지 크롤러들
+│   │   └── sel_demo/        # Selenium 크롤러들
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── README.md
+├── Dockerfile
+└── requirements.txt
+```
+
+### 주요 기능
+
+- **카카오맵 크롤링**: 장소 검색 및 메뉴 가격 추출
+- **바가지 탐지**: 메뉴 가격 분석 및 바가지 탐지
+- **위험 탐지**: 뉴스 크롤링 및 위험 요소 분석
+- **다양한 소스 크롤링**: 네이버, 다음, 구글, 벅스뮤직, 다나와 등
+
+### API 엔드포인트 (카카오맵)
+
+- `GET /kakao/search`: 카카오맵 장소 검색
+- `GET /kakao/crawl/{place_id}`: 특정 장소의 메뉴 정보 크롤링
+
+### 2.4 ML Service
+
+**위치**: `services/mlservice/`  
+**역할**: 머신러닝 모델 및 데이터 분석 서비스
+
+```
+mlservice/
+├── app/
+│   ├── main.py                      # FastAPI 메인 애플리케이션
+│   ├── config.py                    # 설정 파일
+│   ├── nlp/                         # 자연어 처리 모듈
+│   │   ├── nlp_router.py           # NLP 라우터
+│   │   ├── emma/                    # Emma 워드클라우드
+│   │   │   └── emma_wordcloud.py
+│   │   ├── samsung/                 # 삼성 워드클라우드
+│   │   │   └── samsung_wordcloud.py
+│   │   └── review/                  # 리뷰 감정 분석
+│   │       ├── emotion_inference.py
+│   │       └── corpus/              # 리뷰 코퍼스 (47개 JSON 파일)
+│   ├── seoul_crime/                 # 서울 범죄 데이터 분석
+│   │   ├── seoul_router.py
+│   │   ├── seoul_service.py
+│   │   ├── seoul_data.py
+│   │   ├── seoul_method.py
+│   │   ├── seoul_model.py
+│   │   ├── google_map_singleton.py
+│   │   └── kakao_map_singleton.py
+│   ├── titanic/                     # 타이타닉 데이터셋 분석
+│   │   ├── titanic_router.py
+│   │   ├── titanic_service.py
+│   │   ├── titanic_dataset.py
+│   │   ├── titanic_method.py
+│   │   └── titanic_model.py
+│   ├── us_unemployment/             # 미국 실업률 데이터 분석
+│   │   ├── router.py
+│   │   └── service.py
+│   ├── resources/                   # 리소스 파일
+│   │   ├── crime/                   # 범죄 데이터
+│   │   │   ├── cctv.csv
+│   │   │   ├── crime.csv
+│   │   │   ├── kr-state.json
+│   │   │   ├── pop.xls
+│   │   │   ├── us_unemployment.csv
+│   │   │   └── us-states.json
+│   │   ├── data/                    # 일반 데이터
+│   │   │   ├── D2Coding.ttf
+│   │   │   ├── kr-Report_2018.txt
+│   │   │   └── stopwords.txt
+│   │   ├── koelectra_local/         # KoELECTRA 모델
+│   │   │   ├── config.json
+│   │   │   ├── model.safetensors
+│   │   │   ├── pytorch_model.bin
+│   │   │   ├── tokenizer.json
+│   │   │   └── vocab.txt
+│   │   └── titanic/                 # 타이타닉 데이터셋
+│   │       ├── test.csv
+│   │       └── train.csv
+│   ├── save/                        # 생성된 결과 파일
+│   │   ├── crime_heatmap.png
+│   │   ├── crime_cctv_map.html
+│   │   ├── emma_wordcloud.png
+│   │   ├── samsung_wordcloud.png
+│   │   └── us_unemployment_map.html
+│   ├── create_crime_cctv_map.py     # 범죄-CCTV 맵 생성
+│   └── create_crime_heatmap.py      # 범죄 히트맵 생성
+├── Dockerfile
+├── requirements.txt
+├── README.md
+├── POSTMAN_GUIDE.md
+└── RUN_SERVICE.md
+```
+
+### 주요 기능
+
+- **서울 범죄 데이터 분석**: 범죄 발생 지역 분석 및 시각화
+- **NLP 분석**: 워드클라우드 생성, 리뷰 감정 분석
+- **타이타닉 데이터셋 분석**: 머신러닝 모델 학습 및 예측
+- **미국 실업률 분석**: 지도 기반 시각화
+
+### 문서
+
+- `POSTMAN_GUIDE.md`: Postman API 테스트 가이드
+- `RUN_SERVICE.md`: 서비스 실행 가이드
+- `HEATMAP_GUIDE.md`: 히트맵 생성 가이드
+- `MAP_VISUALIZATION_GUIDE.md`: 지도 시각화 가이드
+
+---
+
+## 3. 기술 스택
+
+### 프레임워크 및 라이브러리
+
+- **FastAPI**: 웹 프레임워크
+- **Uvicorn**: ASGI 서버
+- **Selenium**: 웹 자동화 및 크롤링
+- **BeautifulSoup**: HTML 파싱
+- **ChromaDB**: 벡터 데이터베이스
+- **KoELECTRA**: 한국어 언어 모델
+- **Pandas**: 데이터 처리
+- **Matplotlib/Plotly**: 데이터 시각화
+
+### 인프라
+
+- **Docker**: 컨테이너화
+- **Docker Compose**: 서비스 오케스트레이션
+
+---
+
+## 4. 서비스 포트
+
+| 서비스 | 포트 | 설명 |
+|--------|------|------|
+| Gateway | 9000 | API Gateway |
+| RAG Service | 9002 | RAG 서비스 |
+| Feed Service | 9003 | Feed 서비스 |
+| Chatbot Service | 9004 | 챗봇 서비스 |
+
+---
+
+## 5. 주요 기능 요약
+
+### 5.1 크롤링 기능
+- 카카오맵 장소 검색 및 메뉴 추출
+- 뉴스 크롤링 (네이버, 다음, 구글)
+- 음악 차트 크롤링 (벅스뮤직)
+- 쇼핑몰 크롤링 (다나와)
+
+### 5.2 AI 기능
+- 가격 분석 및 바가지 탐지
+- RAG 기반 질의응답
+- 리뷰 감정 분석
+- 워드클라우드 생성
+
+### 5.3 데이터 분석
+- 범죄 데이터 분석 및 시각화
+- 실업률 데이터 분석
+- 머신러닝 모델 학습 및 예측
+
+---
+
+## 6. 개발 가이드
+
+### 환경 변수 설정
+
+각 서비스는 환경 변수를 통해 설정됩니다. 주요 환경 변수:
+
+- `KAKAO_REST_API_KEY`: 카카오맵 API 키
+- `OPENAI_API_KEY`: OpenAI API 키 (챗봇 서비스)
+- `FEED_SERVICE_URL`: Feed 서비스 URL
+- `RAG_SERVICE_URL`: RAG 서비스 URL
+- `CHATBOT_SERVICE_URL`: Chatbot 서비스 URL
+
+### Docker 실행
+
 ```bash
-uvicorn gateway.app.main:app --host 0.0.0.0 --port 9000
+# 전체 서비스 실행
+docker-compose up -d
+
+# 특정 서비스만 실행
+docker-compose up -d crawler-service
 ```
 
-### 2. Crawler Service (포트: 9001)
-**위치**: `services/crawlerservice/app/main.py`
+### 로컬 실행
 
-**역할**:
-- 웹 크롤링 및 데이터 수집
-- 뉴스 통합 및 위험 지역 분석
-- 스케줄링된 자동 크롤링
-
-**주요 엔드포인트**:
-- `GET /` - 헬스체크
-- `GET /bugsmusic` - Bugs Music 실시간 차트 크롤링
-- `GET /danawa` - 다나와 매트 제품 크롤링
-- `GET /news?keywords=키워드1,키워드2` - 여러 뉴스 소스 통합 검색
-- `GET /risk?keywords=키워드1,키워드2` - 위험 지역 분석
-- `GET /hazard?keywords=키워드1,키워드2` - 위험도 상세 분석 (점수, 위치, 좌표 포함)
-
-**크롤러 모듈**:
-
-#### BeautifulSoup 기반 (`bs_demo/`)
-- **google.py**: Google 뉴스 크롤링
-- **naver.py**: Naver 뉴스 크롤링
-- **daum.py**: Daum 뉴스 크롤링
-- **bugsmusic.py**: Bugs Music 차트 크롤링
-- **aggregate.py**: 뉴스 통합 및 위험 지역 추출
-- **hazard_analyzer.py**: 기사별 위험도 점수 계산 및 위치 정보 추출
-
-#### Selenium 기반 (`sel_demo/`)
-- **danawa.py**: 다나와 제품 크롤링 (동적 콘텐츠)
-
-**스케줄러**:
-- 5분마다 자동으로 뉴스 크롤링 및 위험 지역 분석 실행
-- 기본 키워드: ["시위", "폭행", "속보", "테러", "위험", "사고", "범죄"]
-
-**의존성**:
-- `fastapi==0.104.1`
-- `uvicorn==0.24.0`
-- `requests`, `httpx`, `aiohttp`
-- `beautifulsoup4`, `lxml`, `html5lib`
-- `Selenium`, `Playwright`
-- `apscheduler==3.10.4`
-
-**Docker 설정**:
-- Chrome 및 ChromeDriver 설치 포함
-- Selenium/Playwright 실행 환경 구성
-
-**실행 명령**:
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 9001
+# Gateway 서비스
+cd gateway
+uvicorn app.main:app --host 0.0.0.0 --port 9000
+
+# Crawler 서비스
+cd services/crawlerservice
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# ML 서비스
+cd services/mlservice
+uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
 
-### 3. Chatbot Service
-**위치**: `services/chatbotservice/app/price_analyzer.py`
+---
 
-**역할**:
-- 챗봇 관련 AI 서비스 (현재 개발 중)
-- 가격 분석 기능 (현재 비어있음)
+## 7. 데이터 저장소
 
-**의존성**:
-- `fastapi==0.104.1`
-- `uvicorn==0.24.0`
+### 벡터 데이터베이스
+- **ChromaDB**: RAG 서비스의 벡터 스토어 (`chatbotservice/rag.kroaddy.site/vector_db/chroma_db/`)
 
-### 4. POI Recommend Service (포트: 8003)
-**위치**: `services/poirecommendservice/app/main.py`
+### 파일 저장소
+- **CSV 파일**: 크롤링 데이터 (`crawlerservice/app/save/`)
+- **이미지/HTML**: 분석 결과 파일 (`mlservice/app/save/`)
 
-**역할**:
-- 사용자 기반 장소(POI) 추천 서비스
-- 여행로그 데이터를 활용한 추천 모델 실행
-- SVD(Singular Value Decomposition) 기반 협업 필터링
+---
 
-**주요 엔드포인트**:
-- `GET /recommend?user_id=사용자ID` - 특정 사용자에 대한 장소 추천 반환
+## 8. 향후 개선 사항
 
-**주요 파일**:
-- **main.py**: FastAPI 애플리케이션, `/recommend` 엔드포인트 제공
-- **model_runner.py**: 모델 실행 로직
-  - `E_capital_model.py` 스크립트를 subprocess로 실행
-  - 결과 CSV 파일(`E_recommendations.csv`)에서 사용자별 추천 필터링
-- **models/E_capital_model.py**: 추천 모델 스크립트
-  - 전처리된 데이터를 사용하여 추천 생성
-  - SVD 모델(`svd_model_E.pkl`) 사용
-- **inputdata/tn_visit_area_info_E.csv**: 원본 방문 지역 정보 데이터
-- **preprocessed/dfE.csv**: 전처리된 데이터
-- **outputs/E_recommendations.csv**: 모델 실행 결과 추천 데이터
+- [ ] `common/` 모듈 구현
+- [ ] `transformer/` 서비스 구현
+- [ ] 통합 로깅 시스템
+- [ ] 모니터링 및 메트릭 수집
+- [ ] API 문서 자동화 (Swagger/OpenAPI)
 
-**동작 방식**:
-1. 사용자 ID를 받아 `/recommend` 엔드포인트 호출
-2. `model_runner.py`의 `run_recommend_model()` 함수 실행
-3. `E_capital_model.py` 스크립트를 subprocess로 실행하여 추천 생성
-4. 생성된 `E_recommendations.csv`에서 해당 사용자 ID의 추천만 필터링하여 반환
+---
 
-**의존성**:
-- `fastapi`
-- `uvicorn`
-- `pandas`
-- `scikit-surprise` (SVD 모델용)
-- `numpy`
-- `joblib` (모델 로드용)
+## 9. 참고 문서
 
-**Docker 설정**:
-- Python 3.10 기반
-- 포트 8003 노출
-- 볼륨 마운트: `./services/poirecommendservice/app:/app/app` (개발 시 코드 변경 반영)
+각 서비스별 README 및 가이드 문서:
 
-**실행 명령**:
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8003
-```
+- `gateway/app/agent/README.md`: Agent 서비스 가이드
+- `services/chatbotservice/README.md`: 챗봇 서비스 가이드
+- `services/mlservice/README.md`: ML 서비스 가이드
+- `services/mlservice/POSTMAN_GUIDE.md`: API 테스트 가이드
 
-## Docker Compose 설정
+---
 
-**파일**: `docker-compose.yaml`
-
-**서비스 구성**:
-1. **gateway**: 포트 9000
-2. **crawlerservice**: 포트 9001
-3. **poirecommendservice**: 포트 8003 (볼륨 마운트 포함)
-
-**실행 방법**:
-```bash
-docker-compose up --build
-```
-
-## API 사용 예시
-
-### Gateway를 통한 Crawler 서비스 호출
-```bash
-# Bugs Music 차트
-GET http://localhost:9000/crawler/bugsmusic
-
-# 뉴스 통합 검색
-GET http://localhost:9000/crawler/news?keywords=시위,폭행
-
-# 위험 지역 분석
-GET http://localhost:9000/crawler/risk?keywords=시위,폭행,속보
-
-# 위험도 상세 분석
-GET http://localhost:9000/crawler/hazard?keywords=시위,폭행,속보,테러,위험
-```
-
-### Crawler 서비스 직접 호출
-```bash
-# Bugs Music 차트
-GET http://localhost:9001/bugsmusic
-
-# 뉴스 통합 검색
-GET http://localhost:9001/news?keywords=시위,폭행
-```
-
-### POI Recommend 서비스 호출
-```bash
-# 사용자 장소 추천
-GET http://localhost:8003/recommend?user_id=사용자ID
-```
-
-## 주요 기능
-
-### 1. 뉴스 통합 검색
-- Google, Naver, Daum 3개 소스에서 키워드 검색
-- 중복 제거 및 통합 결과 반환
-
-### 2. 위험 지역 분석
-- 뉴스 기사에서 위치 정보 추출
-- 지역별 위험도 집계
-- 위도/경도 좌표 포함
-
-### 3. 위험도 상세 분석
-- 각 기사별 위험도 점수 계산 (0-100)
-- 위치 정보 및 좌표 추출
-- 위험도 점수 순 정렬
-
-### 4. 자동 스케줄링
-- 5분마다 자동 크롤링 실행
-- 위험 키워드 모니터링
-- 위험 지역 자동 감지
-
-## 기술 스택
-
-- **프레임워크**: FastAPI
-- **서버**: Uvicorn
-- **크롤링**: BeautifulSoup4, Selenium, Playwright
-- **스케줄링**: APScheduler
-- **컨테이너화**: Docker, Docker Compose
-- **언어**: Python 3.11
-
-## 환경 변수
-
-현재 환경 변수 설정은 없습니다. 향후 추가 가능합니다.
-
-## 향후 개발 계획
-
-1. **Chatbot Service**: 가격 분석 및 AI 챗봇 기능 구현
-2. **인증/인가**: API 키 또는 JWT 토큰 기반 인증
-3. **데이터베이스**: 수집된 데이터 저장 및 조회
-4. **로깅**: 구조화된 로깅 시스템
-5. **모니터링**: 서비스 헬스체크 및 메트릭 수집
+**최종 업데이트**: 2025년 1월
 
