@@ -8,21 +8,48 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 from app.price_analyzer import chatbot, simple_chat, analyze_price
 import logging
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
-# 로깅 설정
+# 로깅 설정 (먼저 설정)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# 루트 디렉토리의 .env 파일 로드
+# 프로젝트 루트까지 상위로 이동하여 .env 파일 찾기
+current_dir = Path(__file__).parent
+root_dir = current_dir
+env_loaded = False
+for _ in range(5):  # 최대 5단계까지 상위 디렉토리 탐색
+    env_file = root_dir / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        logger.info(f"✓ .env 파일 로드 완료: {env_file}")
+        env_loaded = True
+        break
+    parent = root_dir.parent
+    if parent == root_dir:  # 더 이상 상위 디렉토리가 없으면 중단
+        break
+    root_dir = parent
+
+if not env_loaded:
+    # .env 파일을 찾지 못한 경우 현재 디렉토리와 상위 디렉토리에서 시도
+    load_dotenv()  # 기본적으로 현재 디렉토리와 상위 디렉토리에서 .env 찾기
+    logger.info("기본 경로에서 .env 파일 로드 시도")
+
 app = FastAPI(title="Chatbot Service", version="1.0.0")
 
-# CORS 설정
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS 설정 제거 (게이트웨이를 통해서만 접근하므로 게이트웨이에서 CORS 처리)
+# 게이트웨이를 통하지 않고 직접 접근하는 경우를 위한 최소한의 CORS 설정
+# 하지만 게이트웨이를 통해서만 접근하므로 주석 처리
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # ============================================================================
 # 요청/응답 모델

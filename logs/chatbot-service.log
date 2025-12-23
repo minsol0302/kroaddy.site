@@ -1,0 +1,10 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\hi\\Desktop\\test3\\kroaddy_project_dacon\\ai.kroaddy.site\\services\\chatbotservice']
+INFO:     Uvicorn running on http://0.0.0.0:9004 (Press CTRL+C to quit)
+INFO:     Started reloader process [2924] using StatReload
+INFO:app.price_analyzer:\u2713 .env 파일 로드 완료: C:\Users\hi\Desktop\test3\kroaddy_project_dacon\.env
+INFO:app.main:\u2713 .env 파일 로드 완료: C:\Users\hi\Desktop\test3\kroaddy_project_dacon\.env
+INFO:     Started server process [14884]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:60505 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60505 - "GET /favicon.ico HTTP/1.1" 404 Not Found
