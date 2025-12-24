@@ -1,0 +1,122 @@
+services:
+  # API Gateway (Spring Cloud Gateway)
+  api-gateway:
+    build:
+      context: ./api.kroaddy.site
+      dockerfile: ./Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
+      - KAKAO_REDIRECT_URI=${KAKAO_REDIRECT_URI}
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
+      - NAVER_REDIRECT_URI=${NAVER_REDIRECT_URI}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONT_LOGIN_CALLBACK_URL=${FRONT_LOGIN_CALLBACK_URL}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:http://authservice:8081}
+      - RAG_SERVICE_URL=${RAG_SERVICE_URL:http://ragservice:9002}
+      - CHATBOT_SERVICE_URL=${CHATBOT_SERVICE_URL:http://chatbotservice:9004}
+      - CRAWLER_SERVICE_URL=${CRAWLER_SERVICE_URL:http://crawlerservice:9001}
+      - POI_RECOMMEND_SERVICE_URL=${POI_RECOMMEND_SERVICE_URL:http://poirecommendservice:8003}
+      - AGENT_SERVICE_URL=${AGENT_SERVICE_URL:http://agentservice:9005}
+    networks:
+      - spring-network
+    depends_on:
+      - authservice
+      - ragservice
+      - chatbotservice
+      - crawlerservice
+      - poirecommendservice
+      - agentservice
+
+  # Auth Service
+  authservice:
+    build:
+      context: ./core.kroaddy.site
+      dockerfile: ./services/authservice/Dockerfile
+    container_name: authservice
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=${SERVER_PORT}
+      - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
+      - KAKAO_REDIRECT_URI=${KAKAO_REDIRECT_URI}
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
+      - NAVER_REDIRECT_URI=${NAVER_REDIRECT_URI}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - spring-network
+
+  # RAG Service
+  ragservice:
+    build: ./ai.kroaddy.site/services/ragservice
+    ports:
+      - "9002:9002"
+    container_name: ragservice
+    restart: unless-stopped
+    volumes:
+      - ./ai.kroaddy.site/services/ragservice/vector_db:/app/vector_db
+      - ./ai.kroaddy.site/services/ragservice/data:/app/data
+    networks:
+      - spring-network
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+
+  # Crawler Service
+  crawlerservice:
+    build: ./ai.kroaddy.site/services/crawlerservice
+    ports:
+      - "9001:9001"
+    container_name: crawlerservice
+    networks:
+      - spring-network
+
+  # POI Recommend Service
+  poirecommendservice:
+    build: ./ai.kroaddy.site/services/poirecommendservice
+    container_name: poirecommendservice
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./ai.kroaddy.site/services/poirecommendservice/app:/app/app
+    restart: unless-stopped
+    networks:
+      - spring-network
+
+  # Chatbot Service
+  chatbotservice:
+    build: ./ai.kroaddy.site/services/chatbotservice
+    ports:
+      - "9004:9004"
+    container_name: chatbotservice
+    restart: unless-stopped
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    networks:
+      - spring-network
+
+  # Agent Service (LLM API 및 SLLM 관리)
+  agentservice:
+    build: ./ai.kroaddy.site/services/agentservice
+    ports:
+      - "9005:9005"
+    container_name: agentservice
+    restart: unless-stopped
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    networks:
+      - spring-network
+
+networks:
+  spring-network:
+    name: spring-network
+    driver: bridge

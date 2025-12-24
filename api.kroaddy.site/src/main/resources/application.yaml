@@ -1,0 +1,98 @@
+spring:
+  application:
+    name: gateway
+  server:
+    port: 8080
+  cloud:
+    config:
+      enabled: false
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "http://localhost:3000"
+              - "http://localhost:3001"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            exposedHeaders: "*"
+            maxAge: 3600
+      server:
+        webflux:
+          routes:
+            # Auth-service 라우팅 (모든 /api/auth/** 경로)
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URL:http://authservice:8081}
+              predicates:
+                - Path=/api/auth/**
+
+            # Log-service 라우팅 (모든 /api/log/** 경로)
+            - id: log-service
+              uri: ${AUTH_SERVICE_URL:http://authservice:8081}
+              predicates:
+                - Path=/api/log/**
+
+            # RAG Service 라우팅
+            - id: rag-service
+              uri: ${RAG_SERVICE_URL:http://ragservice:9002}
+              predicates:
+                - Path=/api/rag/**,/rag/**
+
+            # Chatbot Service 라우팅
+            - id: chatbot-service
+              uri: ${CHATBOT_SERVICE_URL:http://chatbotservice:9004}
+              predicates:
+                - Path=/api/chatbot/**,/chatbot/**
+
+            # Crawler Service 라우팅
+            - id: crawler-service
+              uri: ${CRAWLER_SERVICE_URL:http://crawlerservice:9001}
+              predicates:
+                - Path=/api/crawler/**,/crawler/**
+
+            # POI Recommend Service 라우팅
+            - id: poi-recommend-service
+              uri: ${POI_RECOMMEND_SERVICE_URL:http://poirecommendservice:8003}
+              predicates:
+                - Path=/api/poi/**,/poi/**
+
+            # Agent Service 라우팅
+            - id: agent-service
+              uri: ${AGENT_SERVICE_URL:http://agentservice:9005}
+              predicates:
+                - Path=/api/agent/**,/agent/**
+
+            # 루트 경로 - Swagger UI로 리다이렉트
+            - id: root-redirect
+              uri: http://localhost:8080
+              predicates:
+                - Path=/
+              filters:
+                - SetPath=/docs
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+# Gateway는 Eureka 사용하지 않음
+eureka:
+  client:
+    enabled: false
+
+# Swagger / Springdoc 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs
+    enabled: true
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
