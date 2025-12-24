@@ -1,8 +1,0 @@
-INFO:     Will watch for changes in these directories: ['C:\\Users\\hi\\Desktop\\test3\\kroaddy_project_dacon\\ai.kroaddy.site\\gateway']
-INFO:     Uvicorn running on http://0.0.0.0:9000 (Press CTRL+C to quit)
-INFO:     Started reloader process [9164] using StatReload
-INFO:     Started server process [24456]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     127.0.0.1:58020 - "GET / HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58020 - "GET /favicon.ico HTTP/1.1" 404 Not Found

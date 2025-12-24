@@ -1,0 +1,4 @@
+rootProject.name = 'core'
+
+include 'services:authservice'
+

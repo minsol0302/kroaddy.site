@@ -96,266 +96,6 @@ export default function Home() {
     const newMessages = [...messages, { role: 'user' as const, content: message }];
     setMessages(newMessages);
 
-    // Titanic 검색 키워드 처리 (더 유연한 감지)
-    const messageLower = message.toLowerCase().trim();
-    const titanicKeywords = ['titanic', '타이타닉', '승객', 'passenger'];
-
-    // 나이/등급/성별 관련 키워드가 있으면 Titanic 검색으로 간주
-    const hasTitanicContext = messageLower.includes('titanic') ||
-      messageLower.includes('타이타닉') ||
-      messageLower.includes('승객') ||
-      messageLower.includes('passenger') ||
-      // 나이 관련 키워드
-      messageLower.includes('나이') ||
-      messageLower.includes('어린') ||
-      messageLower.includes('젊은') ||
-      messageLower.includes('나이든') ||
-      messageLower.includes('늙은') ||
-      // 등급 관련
-      messageLower.includes('등급') ||
-      messageLower.includes('등') ||
-      // 성별 관련 (단독으로는 제외, 다른 키워드와 함께 있을 때만)
-      (messageLower.includes('여자') || messageLower.includes('남자')) &&
-      (messageLower.includes('나이') || messageLower.includes('등급') || messageLower.includes('승객'));
-
-    const isTitanicSearch = hasTitanicContext;
-
-    if (isTitanicSearch) {
-      console.log('🚢 Titanic 검색 감지:', message);
-
-      // 작성중 메시지 추가
-      const typingMessage = createTypingMessage();
-      setMessages([...newMessages, typingMessage]);
-      setScreen('chatResponse');
-
-      // 자연어 파싱하여 필터 추출
-      const parseFilters = (text: string) => {
-        const lowerText = text.toLowerCase();
-        const filters: any = {
-          keyword: '',
-          limit: 10,
-          sex: null,
-          age_min: null,
-          age_max: null,
-          sort_by: null,
-          sort_order: 'asc',
-          survived: null,
-          pclass: null
-        };
-
-        // 등급 필터 먼저 추출 (등급 숫자는 limit에서 제외하기 위해)
-        const classMatch = lowerText.match(/(\d+)\s*(등급|등|class|클래스)/);
-        if (classMatch) {
-          const pclass = parseInt(classMatch[1]);
-          if (pclass >= 1 && pclass <= 3) {
-            filters.pclass = pclass;
-          }
-        }
-
-        // 숫자 추출 (명, 개, 명의 등) - 여러 숫자가 있으면 마지막 것을 사용
-        // 단, 등급 숫자는 제외
-        const numberMatches = text.match(/(\d+)\s*(명|개|명의|명만|명)/g);
-        if (numberMatches && numberMatches.length > 0) {
-          // 마지막 숫자를 limit으로 사용
-          const lastMatch = numberMatches[numberMatches.length - 1].match(/(\d+)/);
-          if (lastMatch) {
-            const extractedNumber = parseInt(lastMatch[1]);
-            // 등급 숫자가 아니면 limit으로 사용
-            if (!filters.pclass || extractedNumber !== filters.pclass) {
-              filters.limit = extractedNumber;
-            }
-          }
-        }
-
-        // 성별 필터 (더 정확한 매칭)
-        if (lowerText.includes('여자') || lowerText.includes('여성') || lowerText.includes('female') ||
-          (lowerText.includes('여') && (lowerText.includes('승객') || lowerText.includes('여자')))) {
-          filters.sex = 'female';
-        } else if (lowerText.includes('남자') || lowerText.includes('남성') || lowerText.includes('male') ||
-          (lowerText.includes('남') && (lowerText.includes('승객') || lowerText.includes('남자')))) {
-          filters.sex = 'male';
-        }
-
-        // 나이 관련 필터 (띄어쓰기 무시 버전도 체크)
-        const normalizedText = lowerText.replace(/\s+/g, ''); // 띄어쓰기 제거
-
-        const youngerPatterns = [
-          '나이어린',
-          '나이가어린',
-          '나이어린',
-          '나이가 어린',
-          '나이 어린',
-          '어린',
-          '젊은',
-          'youngest',
-          'young'
-        ];
-        const olderPatterns = [
-          '나이많은',
-          '나이가많은',
-          '나이많은',
-          '나이가 많은',
-          '나이 많은',
-          '나이든',
-          '늙은',
-          'oldest',
-          'old'
-        ];
-
-        const isYounger =
-          youngerPatterns.some(p => lowerText.includes(p) || normalizedText.includes(p.replace(/\s+/g, ''))) ||
-          (lowerText.includes('가장') && (lowerText.includes('어린') || lowerText.includes('젊은')));
-        const isOlder =
-          olderPatterns.some(p => lowerText.includes(p) || normalizedText.includes(p.replace(/\s+/g, ''))) ||
-          (lowerText.includes('가장') && (normalizedText.includes('나이많은') || lowerText.includes('나이든') || lowerText.includes('늙은')));
-
-        if (isYounger) {
-          filters.sort_by = 'age';
-          filters.sort_order = 'asc';
-        } else if (isOlder) {
-          filters.sort_by = 'age';
-          filters.sort_order = 'desc';
-        }
-
-        // 생존 여부
-        if (lowerText.includes('생존') || lowerText.includes('생존한') || lowerText.includes('살아남은') || lowerText.includes('survived')) {
-          filters.survived = 1;
-        } else if (lowerText.includes('사망') || lowerText.includes('사망한') || lowerText.includes('죽은') || lowerText.includes('died')) {
-          filters.survived = 0;
-        }
-
-        // 등급 필터는 이미 위에서 처리됨
-
-        // 키워드 추출 (titanic 관련 키워드와 필터 키워드 제외)
-        let searchKeyword = text;
-        const excludeKeywords = [
-          ...titanicKeywords,
-          // 성별 관련
-          '여자', '여성', '남자', '남성', 'female', 'male', '여', '남', '여들', '남들',
-          // 나이 관련
-          '나이어린', '어린', '젊은', '나이많은', '나이든', '늙은',
-          // 생존 관련 (조사까지 포함)
-          '생존한', '생존', '살아남은', '사망한', '사망', '죽은',
-          // 등급 관련
-          '등급', '등', 'class', '클래스',
-          // 수량/지시어 및 불용어
-          '명', '개', '명의', '명만', '명만', '명중', '중', '만', '들',
-          '출력', '보여', '보여줘', '보여줘요', '보여줄래', '보줘',
-          '찾아', '검색', '해줘', '해주세요', '또는',
-          '가장',
-          // Titanic 기본 키워드
-          'titanic', 'passenger', '승객', '타이타닉'
-        ];
-        for (const keyword of excludeKeywords) {
-          const regex = new RegExp(keyword, 'gi');
-          searchKeyword = searchKeyword.replace(regex, '').trim();
-        }
-        // 숫자와 특수문자 제거
-        searchKeyword = searchKeyword
-          .replace(/\d+/g, '')
-          .replace(/[^\w\s가-힣]/g, '')
-          .trim();
-
-        // 의미 없는 단어만 남은 경우 제거
-        const stopSingles = ['중', '만', '들', '한'];
-        const stopWords = ['사람', '승객'];
-        if (
-          searchKeyword &&
-          !(searchKeyword.length === 1 && stopSingles.includes(searchKeyword)) &&
-          !stopWords.includes(searchKeyword)
-        ) {
-          filters.keyword = searchKeyword;
-        }
-
-        // null 값 제거 (백엔드에서 None으로 처리되도록)
-        const cleanedFilters: any = {
-          keyword: filters.keyword || '',
-          limit: filters.limit || 10
-        };
-        if (filters.sex) cleanedFilters.sex = filters.sex;
-        if (filters.age_min !== null) cleanedFilters.age_min = filters.age_min;
-        if (filters.age_max !== null) cleanedFilters.age_max = filters.age_max;
-        if (filters.sort_by) cleanedFilters.sort_by = filters.sort_by;
-        if (filters.sort_order) cleanedFilters.sort_order = filters.sort_order;
-        if (filters.survived !== null) cleanedFilters.survived = filters.survived;
-        if (filters.pclass !== null) cleanedFilters.pclass = filters.pclass;
-
-        return cleanedFilters;
-      };
-
-      const filters = parseFilters(message);
-      console.log('🔍 파싱된 필터:', JSON.stringify(filters, null, 2));
-
-      const TITANIC_API_URL = process.env.NEXT_PUBLIC_TITANIC_API_URL || 'http://localhost:9010';
-      console.log('🌐 API URL:', `${TITANIC_API_URL}/search`);
-      console.log('📤 요청 본문:', JSON.stringify(filters, null, 2));
-
-      fetch(`${TITANIC_API_URL}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(filters)
-      })
-        .then(async res => {
-          console.log('📡 응답 상태:', res.status);
-          if (!res.ok) {
-            const errorText = await res.text();
-            console.error('❌ HTTP 에러:', res.status, errorText);
-            throw new Error(`HTTP error! status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then(data => {
-          console.log('✅ 검색 결과:', data);
-          let responseContent = '';
-
-          if (data.total_results === 0) {
-            responseContent = uiLanguage === 'ko'
-              ? `🚢 **Titanic 승객 검색 결과**\n\n검색 조건에 맞는 결과가 없습니다.\n\n다른 조건으로 검색해보세요.`
-              : `🚢 **Titanic Passenger Search Results**\n\nNo results found for your search criteria.\n\nTry different search conditions.`;
-          } else {
-            // 검색 결과 포맷팅
-            responseContent = uiLanguage === 'ko'
-              ? `🚢 **Titanic 승객 검색 결과**\n\n${data.message || `${data.total_results}명의 승객을 찾았습니다.`}\n\n`
-              : `🚢 **Titanic Passenger Search Results**\n\n${data.message || `Found ${data.total_results} passengers.`}\n\n`;
-
-            data.results.forEach((passenger: any, index: number) => {
-              const survived = passenger.Survived === 1
-                ? (uiLanguage === 'ko' ? '✅ 생존' : '✅ Survived')
-                : (uiLanguage === 'ko' ? '❌ 사망' : '❌ Deceased');
-
-              responseContent += `---\n\n`;
-              responseContent += `**${index + 1}. ${passenger.Name}**\n\n`;
-              responseContent += `- ${uiLanguage === 'ko' ? '생존 여부' : 'Survival'}: ${survived}\n`;
-              responseContent += `- ${uiLanguage === 'ko' ? '등급' : 'Class'}: ${passenger.Pclass}${uiLanguage === 'ko' ? '등급' : ''}\n`;
-              responseContent += `- ${uiLanguage === 'ko' ? '성별' : 'Sex'}: ${passenger.Sex}\n`;
-              responseContent += `- ${uiLanguage === 'ko' ? '나이' : 'Age'}: ${passenger.Age ? `${passenger.Age}${uiLanguage === 'ko' ? '세' : ''}` : 'N/A'}\n`;
-              responseContent += `- ${uiLanguage === 'ko' ? '티켓' : 'Ticket'}: ${passenger.Ticket}\n`;
-              responseContent += `- ${uiLanguage === 'ko' ? '요금' : 'Fare'}: ${passenger.Fare ? `$${passenger.Fare.toFixed(2)}` : 'N/A'}\n`;
-              if (passenger.Cabin) {
-                responseContent += `- ${uiLanguage === 'ko' ? '선실' : 'Cabin'}: ${passenger.Cabin}\n`;
-              }
-              if (passenger.Embarked) {
-                responseContent += `- ${uiLanguage === 'ko' ? '승선지' : 'Embarked'}: ${passenger.Embarked}\n`;
-              }
-              responseContent += `\n`;
-            });
-          }
-
-          console.log('📝 응답 내용:', responseContent);
-          // 작성중 메시지를 실제 답변으로 교체
-          setMessages(prev => replaceTypingMessage(prev, typingMessage, responseContent));
-          setScreen('chatResponse');
-        })
-        .catch(error => {
-          console.error('❌ Titanic 검색 오류:', error);
-          const errorMessage = uiLanguage === 'ko'
-            ? `🚢 Titanic 검색 중 오류가 발생했습니다.\n\n오류: ${error.message}\n\n잠시 후 다시 시도해주세요.`
-            : `🚢 An error occurred while searching Titanic passengers.\n\nError: ${error.message}\n\nPlease try again later.`;
-          setMessages(prev => replaceTypingMessage(prev, typingMessage, errorMessage));
-        });
-      return;
-    }
-
     // '있을까?' 키워드 처리
     if (message.includes('있을까?') || message.toLowerCase().includes('nearby')) {
       // 작성중 메시지 추가
@@ -631,11 +371,11 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
     } else {
       // '/'로 시작하는 메시지는 검색 키워드로 처리
       const trimmedMessage = message.trim();
-
+      
       if (trimmedMessage.startsWith('/')) {
         // '/'를 제거한 나머지 부분을 검색 키워드로 사용
         const searchKeyword = trimmedMessage.substring(1).trim();
-
+        
         if (searchKeyword.length > 0) {
           setSearchKeyword(searchKeyword);
           setScreen('chatResponse');
@@ -671,8 +411,8 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      // OpenAI API 호출 (게이트웨이를 통해)
-      const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:8080/api/chatbot';
+      // OpenAI API 호출
+      const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:9000/chatbot';
 
       // Onboarding 데이터 가져오기
       let userProfile = null;
@@ -716,22 +456,16 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
       }, 30000);
       timeoutRefsRef.current.push(timeoutId);
 
-      console.log('Chatbot API 호출:', `${CHATBOT_API_URL}/chat`);
-      
       fetch(`${CHATBOT_API_URL}/chat`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: message,
           conversation_history: conversationHistory,
           user_profile: userProfile, // Onboarding 데이터
           context_info: Object.keys(contextInfo).length > 0 ? contextInfo : undefined // 위치/날씨 정보
         }),
-        signal: controller.signal,
-        credentials: 'include' // CORS 쿠키 포함
+        signal: controller.signal
       })
         .then(async res => {
           // 타임아웃 제거
@@ -804,16 +538,6 @@ A hanok-style cafe that's very popular these days. Beautiful Eastern interior an
           if (error.name !== 'AbortError') {
             console.error('챗봇 API 호출 실패:', error);
             console.error('에러 상세:', error.message, error.stack);
-            console.error('요청 URL:', `${CHATBOT_API_URL}/chat`);
-            console.error('에러 타입:', error.name);
-            
-            // 네트워크 오류인 경우 추가 정보 출력
-            if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
-              console.error('네트워크 오류 가능성:');
-              console.error('  - 게이트웨이가 실행 중인지 확인: http://localhost:8080');
-              console.error('  - chatbot-service가 실행 중인지 확인: http://localhost:9004');
-              console.error('  - CORS 설정 확인');
-            }
           }
 
           // 작성중 메시지를 에러 메시지로 교체

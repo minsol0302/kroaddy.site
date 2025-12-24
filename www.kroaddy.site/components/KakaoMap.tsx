@@ -155,10 +155,10 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     const ddpLat = 37.5665;
     const ddpLng = 127.0090;
     const radius = 0.003; // 약 300m (위도/경도 차이)
-
+    
     const latDiff = Math.abs(lat - ddpLat);
     const lngDiff = Math.abs(lng - ddpLng);
-
+    
     return latDiff < radius && lngDiff < radius;
   };
 
@@ -170,10 +170,10 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     const dongdaemunLat = 37.5714;
     const dongdaemunLng = 127.0097;
     const radius = 0.005; // 약 500m (위도/경도 차이)
-
+    
     const latDiff = Math.abs(lat - dongdaemunLat);
     const lngDiff = Math.abs(lng - dongdaemunLng);
-
+    
     return latDiff < radius && lngDiff < radius;
   };
 
@@ -200,13 +200,13 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     // 3순위: 장소명에 키워드가 포함되어 있는지 확인
     const name = place.name;
     if (name.includes('경복궁') ||
-      name.includes('꽃밥') || name.includes('꽃밥에 피다') ||
-      name.includes('광장시장') ||
-      name.includes('청계천') ||
-      name.includes('명동대성당') || name.includes('명동 대성당') ||
-      name.includes('청수당') ||
-      name.includes('동대문디자인플라자') || name.includes('동대문 디자인 플라자') || name.includes('DDP') || name.includes('동대문역사문화공원') ||
-      name.includes('동대문')) {
+        name.includes('꽃밥') || name.includes('꽃밥에 피다') ||
+        name.includes('광장시장') ||
+        name.includes('청계천') ||
+        name.includes('명동대성당') || name.includes('명동 대성당') ||
+        name.includes('청수당') ||
+        name.includes('동대문디자인플라자') || name.includes('동대문 디자인 플라자') || name.includes('DDP') || name.includes('동대문역사문화공원') ||
+        name.includes('동대문')) {
       return true;
     }
 
@@ -216,19 +216,19 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   // 현재 위치에 매핑된 이미지가 있는지 확인하는 함수
   const getCurrentLocationImage = (): string | null => {
     if (!currentLocationRef.current) return null;
-
+    
     const { lat, lng } = currentLocationRef.current;
-
+    
     // 1순위: 동대문디자인플라자(DDP) 근처인지 확인 (더 좁은 범위)
     if (isNearDDP(lat, lng)) {
       return '/place/dongdaemunddp.png';
     }
-
+    
     // 2순위: 일반 동대문 근처인지 확인 (더 넓은 범위)
     if (isNearDongdaemun(lat, lng)) {
       return '/place/dongdaemun.png';
     }
-
+    
     return null;
   };
 
@@ -900,7 +900,7 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
             const distance = Math.sqrt(
               Math.pow(clickedLat - currentLat, 2) + Math.pow(clickedLng - currentLng, 2)
             );
-
+            
             if (distance < 0.0005) { // 약 50m
               const currentLocationImage = getCurrentLocationImage();
               if (currentLocationImage) {
@@ -1468,10 +1468,10 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
   // 현재 위치를 Location 객체로 변환하는 함수
   const getCurrentLocationAsPlace = (): Location | null => {
     if (!currentLocationRef.current) return null;
-
+    
     const { lat, lng } = currentLocationRef.current;
     const currentLocationImage = getCurrentLocationImage();
-
+    
     if (currentLocationImage) {
       // 현재 위치의 이미지에 따라 이름 설정
       let name = '현재 위치';
@@ -1480,7 +1480,7 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
       } else if (isNearDongdaemun(lat, lng)) {
         name = '동대문';
       }
-
+      
       return {
         id: 'current-location',
         name: name,
@@ -1489,7 +1489,7 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         lng: lng,
       };
     }
-
+    
     return null;
   };
 
@@ -1498,14 +1498,14 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
     const mappedRoute: Location[] = [];
     const addedIds = new Set<string>(); // 이미 추가된 장소 ID 추적
     const addedNames = new Set<string>(); // 이미 추가된 장소 이름 추적 (중복 방지용)
-
+    
     // 1. 현재 위치 추가 (매핑된 이미지가 있는 경우만)
     const currentLocationPlace = getCurrentLocationAsPlace();
     if (currentLocationPlace) {
       mappedRoute.push(currentLocationPlace);
       addedIds.add(currentLocationPlace.id);
       addedNames.add(currentLocationPlace.name);
-
+      
       // 현재 위치가 동대문디자인플라자일 때, 동대문을 두 번째 경로로 추가
       if (currentLocationPlace.name === '동대문디자인플라자') {
         const dongdaemunPlace: Location = {
@@ -1516,8 +1516,8 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
           lng: 127.0097,
         };
         // 동대문이 이미 route에 포함되어 있지 않은 경우만 추가
-        const isDongdaemunInRoute = route.some(loc =>
-          loc.name === '동대문' ||
+        const isDongdaemunInRoute = route.some(loc => 
+          loc.name === '동대문' || 
           (loc.name.includes('동대문') && !loc.name.includes('디자인플라자') && !loc.name.includes('DDP'))
         );
         if (!isDongdaemunInRoute && hasMappedImage(dongdaemunPlace)) {
@@ -1527,7 +1527,7 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         }
       }
     }
-
+    
     // 2. route에서 매핑된 이미지가 있는 장소만 추가
     if (route && route.length > 0) {
       // route를 order 순서대로 정렬
@@ -1536,22 +1536,22 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         const orderB = b.order !== undefined ? b.order : Infinity;
         return orderA - orderB;
       });
-
+      
       sortedRoute.forEach((location) => {
         // 동대문은 이미 추가했으므로 제외 (동대문디자인플라자가 현재 위치일 때)
         if (currentLocationPlace?.name === '동대문디자인플라자') {
-          const isDongdaemun = location.name === '동대문' ||
+          const isDongdaemun = location.name === '동대문' || 
             (location.name.includes('동대문') && !location.name.includes('디자인플라자') && !location.name.includes('DDP'));
           if (isDongdaemun) {
             return; // 동대문은 이미 추가했으므로 건너뛰기
           }
         }
-
+        
         // 중복 체크: 이미 추가된 장소는 건너뛰기
         if (addedIds.has(location.id) || addedNames.has(location.name)) {
           return;
         }
-
+        
         if (hasMappedImage(location)) {
           mappedRoute.push(location);
           addedIds.add(location.id);
@@ -1559,7 +1559,7 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         }
       });
     }
-
+    
     return mappedRoute;
   };
 
@@ -1716,7 +1716,7 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
         const mappedRoute = getMappedRoute();
         const canGoPrev = currentRouteIndex > 0;
         const canGoNext = currentRouteIndex >= 0 && currentRouteIndex < mappedRoute.length - 1;
-
+        
         return (
           <div className="absolute inset-0 w-full h-full bg-black z-50 relative">
             {/* 닫기 버튼 */}
@@ -1745,23 +1745,25 @@ export default function KakaoMapPage({ route = [], searchKeyword = '', onPlaceCl
                 <button
                   onClick={handlePrevRoute}
                   disabled={!canGoPrev}
-                  className={`px-4 py-3 rounded-lg shadow-lg transition-all font-medium text-sm flex items-center gap-2 ${canGoPrev
+                  className={`px-4 py-3 rounded-lg shadow-lg transition-all font-medium text-sm flex items-center gap-2 ${
+                    canGoPrev
                       ? 'bg-white/90 text-gray-900 hover:bg-white'
                       : 'bg-gray-400/50 text-gray-500 cursor-not-allowed'
-                    }`}
+                  }`}
                 >
                   <span>◀</span>
                   <span>이전</span>
                 </button>
-
+                
                 {/* 다음 버튼 */}
                 <button
                   onClick={handleNextRoute}
                   disabled={!canGoNext}
-                  className={`px-4 py-3 rounded-lg shadow-lg transition-all font-medium text-sm flex items-center gap-2 ${canGoNext
+                  className={`px-4 py-3 rounded-lg shadow-lg transition-all font-medium text-sm flex items-center gap-2 ${
+                    canGoNext
                       ? 'bg-white/90 text-gray-900 hover:bg-white'
                       : 'bg-gray-400/50 text-gray-500 cursor-not-allowed'
-                    }`}
+                  }`}
                 >
                   <span>다음</span>
                   <span>▶</span>

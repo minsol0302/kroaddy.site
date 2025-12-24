@@ -68,9 +68,6 @@ RUN CHROME_VERSION=$(google-chrome --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Playwright 브라우저 설치
-RUN python -m playwright install chromium
-
 COPY app/ ./app/
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9001"]

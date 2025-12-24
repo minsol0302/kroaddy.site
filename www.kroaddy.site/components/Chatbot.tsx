@@ -348,14 +348,13 @@ export function Chatbot({ messages, onSendMessage }: ChatbotProps) {
               { labelKey: 'chatbot.category.activity', keyword: '액티비티' },
               { labelKey: 'chatbot.category.history', keyword: '역사' },
               { labelKey: 'chatbot.category.museum', keyword: '박물관' },
-              { label: '🚢 Titanic', keyword: 'titanic 승객' },
             ].map((category, index) => (
               <button
                 key={index}
                 onClick={() => onSendMessage(category.keyword)}
                 className="px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all whitespace-nowrap flex-shrink-0 text-xs font-medium text-gray-900"
               >
-                {category.labelKey ? t(category.labelKey, uiLanguage) : category.label}
+                {t(category.labelKey, uiLanguage)}
               </button>
             ))}
           </div>

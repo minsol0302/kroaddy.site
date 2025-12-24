@@ -2,11 +2,10 @@ from fastapi import FastAPI, APIRouter, Query
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 import uvicorn
-from app.bs_demo.risk_detection.bugsmusic import crawl_bugsmusic_chart
+from app.bs_demo.bugsmusic import crawl_bugsmusic_chart
 from app.sel_demo.danawa import crawl_danawa_mats
-from app.bs_demo.risk_detection.aggregate import aggregate_news, analyze_risk, run_all_crawlers
-from app.bs_demo.risk_detection.hazard_analyzer import analyze_article
-from app.bs_demo.overcharge_detection.kakao.router import router as kakao_router
+from app.bs_demo.aggregate import aggregate_news, analyze_risk, run_all_crawlers
+from app.bs_demo.hazard_analyzer import analyze_article
 
 # FastAPI 앱 생성
 app = FastAPI()
@@ -176,7 +175,6 @@ async def get_hazard_analysis(keywords: str = Query(..., description="검색 키
 
 # 라우터를 앱에 포함
 app.include_router(clawler_router)
-app.include_router(kakao_router)
 
 # 스케줄러 설정
 scheduler = BackgroundScheduler()
